@@ -1,0 +1,139 @@
+name: Build App and Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+
+jobs:
+  build:
+    name: Build App
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+          - os: linux
+            arch: amd64
+            runner: ubuntu-24.04
+          - os:  darwin
+            arch: universal
+            runner: macos-14
+          - os:  windows
+            arch: amd64
+            runner: windows-2022
+    runs-on: ${{ matrix.build.runner }}
+    env:
+      node_version: 22.x
+      pnpm_version: 9
+      go_version: 1.23
+      wails_version: v2.9.2
+      buf_version: 1.45.0
+      create_dmg_version: 7.0.0
+      output_name: SpyGlass
+      app_version: ${{ github.ref_name }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Setup and configure GoLang
+      - name: Setup GoLang
+        uses: actions/setup-go@v5
+        with:
+          check-latest: true
+          go-version: ${{ env.go_version }}
+
+      # Setup and configure NodeJS
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: ${{ env.pnpm_version }}
+
+      - name: Setup NodeJS
+        uses: actions/setup-node@v4
+        with:
+          check-latest: true
+          node-version: ${{ env.node_version }}
+
+      # Setup buf
+      - name: Setup Buf
+        uses: bufbuild/buf-action@v1
+        with:
+          version: ${{ env.buf_version }}
+          setup_only: true
+
+      # Install Wails
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.wails_version }}
+        shell: bash
+
+      # Install Dependencies
+      - name: Install Linux Wails deps
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install libgtk-3-dev libwebkit2gtk-4.1-dev
+        shell: bash
+
+      # Set environment variables
+      - name: Set variables
+        env:
+          package_name: ${{ env.output_name }}-${{ env.app_version }}-${{ matrix.build.os }}-${{ matrix.build.arch }}${{ runner.os == 'Windows' && '.exe' || '' }}${{ runner.os == 'macOS' && '.dmg' || '' }}
+        run: |
+          echo "package_name=${package_name}" >> "$GITHUB_ENV"
+        shell: bash
+
+      # Set App Version
+      - name: Set App Version
+        run: >
+          sed -i.bak "s/0.0.0/${{ env.app_version }}/g" wails.json
+        shell: bash
+
+      # Run buf generate
+      - name: Run Buf Generate
+        run: buf generate
+        shell: bash
+
+      # Build Linux
+      - name: Build and Package App for Linux
+        if: runner.os == 'Linux'
+        run: wails build -platform ${{ matrix.build.os }}/${{ matrix.build.arch }} -o ${{ env.package_name }} -tags desktop,production,webkit2_41
+        shell: bash
+
+      # Build Windows
+      - name: Build and Package App for Windows
+        if: runner.os == 'Windows'
+        run: wails build -platform ${{ matrix.build.os }}/${{ matrix.build.arch }} -o ${{ env.package_name }}
+        shell: bash
+
+      # Build macOS
+      - name: Build and Package App for macOS
+        if: runner.os == 'macOS'
+        run: |
+          wails build --platform ${{ matrix.build.os }}/${{ matrix.build.arch }} -o ${{ env.output_name }}
+          npx create-dmg@${{ env.create_dmg_version }} "build/bin/${{ env.output_name }}.app" build/bin/ || true
+          rm -rf "build/bin/${{ env.output_name }}.app"
+          dmg_path="build/bin/${{ env.output_name }} ${{ env.app_version }}.dmg"
+          if ! [ -f "$dmg_path" ]; then
+            echo "Failed to create DMG"
+            exit 1
+          fi
+          mv "$dmg_path" "build/bin/${{ env.package_name }}"
+        shell: bash
+
+      # Upload build assets
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpyGlass ${{ runner.os }}
+          path: |
+            build/bin/${{ env.package_name }}
+
+      # Create Release
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            build/bin/${{ env.package_name }}

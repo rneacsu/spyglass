@@ -1,0 +1,5 @@
+.DS_Store
+build/bin
+internal/grpc/proto
+frontend/src/lib/grpc/proto
+frontend/src/lib/wailsjs

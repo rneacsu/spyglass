@@ -1,0 +1,17 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "spyglass",
+  "outputfilename": "spyglass",
+  "frontend:install": "pnpm install",
+  "frontend:build": "pnpm run build",
+  "frontend:dev:watcher": "pnpm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "wailsjsdir": "./frontend/src/lib",
+  "info": {
+    "productName": "SpyGlass",
+    "productVersion": "0.0.0",
+    "companyName": "Razvan Neacsu",
+    "comments": "A Kubernetes GUI",
+    "copyright": "© 2024 Razvan Neacsu - All Rights Reserved."
+  }
+}
