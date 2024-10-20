@@ -13,6 +13,7 @@
 		"@sveltejs/adapter-static": "^3.0.5",
 		"@sveltejs/kit": "^2.6.1",
 		"@sveltejs/vite-plugin-svelte": "^3.1.2",
+		"@types/bootstrap": "^5.2.10",
 		"sass": "^1.79.4",
 		"svelte": "^4.2.19",
 		"svelte-check": "^4.0.4",
@@ -27,6 +28,7 @@
 		"@popperjs/core": "^2.11.8",
 		"bootstrap": "^5.3.3",
 		"bootstrap-icons": "^1.11.3",
-		"bootswatch": "^5.3.3"
+		"bootswatch": "^5.3.3",
+		"fuse.js": "^7.0.0"
 	}
 }

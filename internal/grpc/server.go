@@ -6,59 +6,28 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"path/filepath"
 	"sync"
 	"time"
 
-	"connectrpc.com/connect"
 	connectcors "connectrpc.com/cors"
-	"github.com/rneacsu5/spyglass/internal/grpc/proto"
 	"github.com/rneacsu5/spyglass/internal/grpc/proto/protoconnect"
 	"github.com/rneacsu5/spyglass/internal/logger"
 	"github.com/rs/cors"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
-
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 )
 
 type GRPCServer struct {
 	url       string
 	server    *http.Server
-	handler   *greeterHandler
+	handler   *kubeHandler
 	wgReady   sync.WaitGroup
 	wgStopped sync.WaitGroup
 }
 
-type greeterHandler struct {
-}
-
-// GetContexts implements protoconnect.GreeterHandler.
-func (s *greeterHandler) GetContexts(context.Context, *connect.Request[proto.Empty]) (*connect.Response[proto.GetContextsReply], error) {
-	kubeconfig := filepath.Join(homedir.HomeDir(), ".kube", "config")
-
-	config, err := clientcmd.LoadFromFile(kubeconfig)
-
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load kubeconfig: %w", err))
-	}
-
-	contexts := make([]string, 0, len(config.Contexts))
-	for context := range config.Contexts {
-		contexts = append(contexts, context)
-	}
-
-	return connect.NewResponse(&proto.GetContextsReply{Contexts: contexts}), nil
-}
-
-func (s *greeterHandler) SayHello(ctx context.Context, req *connect.Request[proto.HelloRequest]) (*connect.Response[proto.HelloReply], error) {
-	return connect.NewResponse(&proto.HelloReply{Message: "Hello " + req.Msg.Name + "! The gRPC connection is working 🥳"}), nil
-}
-
 func NewGRPCServer() *GRPCServer {
 	server := &GRPCServer{
-		handler: &greeterHandler{},
+		handler: NewKubeHandler(),
 	}
 	server.wgReady.Add(1)
 	return server
@@ -72,7 +41,7 @@ func (s *GRPCServer) Start() error {
 	s.url = fmt.Sprintf("http://localhost:%d", lis.Addr().(*net.TCPAddr).Port)
 
 	mux := http.NewServeMux()
-	path, handler := protoconnect.NewGreeterHandler(s.handler)
+	path, handler := protoconnect.NewKubeHandler(s.handler)
 	mux.Handle(path, handler)
 	corsMiddleware := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
@@ -110,6 +79,7 @@ func (s *GRPCServer) Stop() {
 		logger.Fatalf("Failed to shutdown gRPC server: %v", err)
 	}
 	s.wgStopped.Wait()
+	s.handler.Stop()
 }
 
 func (s *GRPCServer) GetUrl() string {

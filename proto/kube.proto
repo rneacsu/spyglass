@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package kube;
+
+service Kube {
+  rpc GetContexts (Empty) returns (ContextsReply) {}
+  rpc GetDefaultContext (Empty) returns (ContextReply) {}
+
+  rpc ListResource (ListResourceRequest) returns (ListResourceReply) {}
+  // rpc ListScopedResource (ListScopedResourceRequest) returns (ListResourceReply) {}
+}
+
+message Empty {}
+
+message ContextsReply {
+  repeated string contexts = 1;
+}
+
+message ContextReply {
+  string context = 1;
+}
+
+message GVR {
+  string group = 1;
+  string version = 2;
+  string resource = 3;
+}
+
+message ListResourceRequest {
+  string context = 1;
+  GVR gvr = 2;
+}
+
+message ListScopedResourceRequest {
+  string context = 1;
+  string namespace = 2;
+  GVR gvr = 3;
+}
+
+message ListResourceReply {
+  repeated Resource resources = 1;
+}
+
+message Resource {
+  string name = 1;
+  string namespace = 2;
+  GVR gvr = 3;
+}

@@ -2,3 +2,7 @@
 @import "bootstrap/scss/bootstrap";
 @import "bootswatch/dist/flatly/bootswatch";
 @import "bootstrap-icons/font/bootstrap-icons.css";
+
+html, body {
+  height: 100%;
+}

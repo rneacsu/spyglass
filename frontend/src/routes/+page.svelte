@@ -1,53 +1,35 @@
 <script lang="ts">
-  import grpcClient from "$lib/grpc/client";
-  import { LogError, LogInfo } from "$lib/wailsjs/runtime/runtime";
-    import { ConnectError } from "@connectrpc/connect";
-
-  let resultText = "Please enter your name above 👆";
-  let name: string;
-  let contextsMessage = "Loading contexts...";
-  let contexts: string[] = [];
-
-  async function greet() {
-    LogInfo("Greeting " + name);
-    try {
-      resultText = (await (await grpcClient).sayHello({ name })).message;
-    } catch (e) {
-      LogError("Error greeting: " + e);
-      resultText = "Error greeting: " + e;
-    }
-  }
-
-  grpcClient.then(async (client) => {
-    contexts = (await client.getContexts({})).contexts;
-    contextsMessage = "";
-  }).catch((e) => {
-    contextsMessage = ConnectError.from(e).message;
-  });
-
+  import Alerts from "$lib/alerts.svelte";
+  import Navbar from "$lib/navbar.svelte";
 </script>
 
-<div class="p-3">
+<div class="h-100 d-flex flex-column">
+  <Navbar />
+  <Alerts />
 
-<h1>Welcome to SpyGlass</h1>
-
-<form class="mt-3" on:submit|preventDefault={greet}>
-  <div class="mb-3">
-    <label for="name" class="form-label">Name</label>
-    <input type="text" bind:value={name} class="form-control" id="name" />
+  <div
+    class="container-fluid py-2 flex-grow-1 position-relative overflow-y-hidden"
+  >
+    <div class="backlogo" />
   </div>
-
-  <button type="submit" class="btn btn-primary"><i class="bi bi-chat-fill"></i> Greet</button>
-</form>
-
-<div class="mt-3">{resultText}</div>
-
-<h2 class="mt-3">Contexts</h2>
-<ul class="mt-3">
-  {contextsMessage}
-  {#each contexts as context}
-    <li>{context}</li>
-  {/each}
-</ul>
-
 </div>
+
+<style lang="scss">
+  @import "bootswatch/dist/flatly/variables";
+
+  .backlogo {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 200px;
+    height: 200px;
+    background: $gray-800;
+    transform: translate(-50%, -50%);
+    z-index: -100;
+
+    mask-image: url("$lib/assets/k8s.svg");
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+  }
+</style>
