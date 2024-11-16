@@ -1,34 +1,41 @@
-<script lang="ts" context="module">
-  export type SidebarItemSelectEvent = CustomEvent<{
+<script lang="ts" module>
+  export type SidebarItemSelectEvent = {
     group: string;
     version: string;
-    name: string;
+    resource: string;
     namespaced: boolean;
-  }>;
+  };
 </script>
 
 <script lang="ts">
-  import { createEventDispatcher, onMount } from "svelte";
+  import { onMount } from "svelte";
   import { Collapse } from "bootstrap";
 
-  export let group: string;
-  export let version: string;
-  export let resources: { name: string; namespaced: boolean }[];
+  let {
+    group = "",
+    version = "",
+    resources = [],
+    select = () => {},
+  }: {
+    group: string;
+    version: string;
+    resources: { name: string; namespaced: boolean }[];
+    select: (event: SidebarItemSelectEvent) => void;
+  } = $props();
 
   let collapse: Collapse;
   let collapseEl: HTMLDivElement;
 
-  const dispatch = createEventDispatcher();
-
   function onToggle() {
     collapse.toggle();
   }
+
   function onSelect(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    const name = target.dataset.name;
+    const resource = target.dataset.resource || "";
     const namespaced = target.dataset.namespaced === "true";
 
-    dispatch("select", { group, version, name, namespaced });
+    select({ group, version, resource, namespaced });
   }
 
   onMount(() => {
@@ -37,7 +44,7 @@
 </script>
 
 <li>
-  <button class="btn" on:click={onToggle}>
+  <button class="btn" onclick={onToggle}>
     {group}/{version}
   </button>
   <div class="collapse" bind:this={collapseEl}>
@@ -45,8 +52,8 @@
       {#each resources as res (res.name)}
         <a
           href={"#"}
-          on:click={onSelect}
-          data-name={res.name}
+          onclick={onSelect}
+          data-resource={res.name}
           data-namespaced={res.namespaced}
         >
           {res.name}

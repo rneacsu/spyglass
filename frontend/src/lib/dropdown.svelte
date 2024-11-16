@@ -1,39 +1,54 @@
-<script context="module" lang="ts">
+<script lang="ts" module>
   export type Item = { label: string; value: string };
 </script>
 
 <script lang="ts">
   import Fuse from "fuse.js";
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { Dropdown as BSDropdown } from "bootstrap";
 
-  export let isLoading = false;
-  export let items: Item[] = [];
-  export let selectedItem: string;
-  export let noItemsMessage: string = "No items available";
-  export let loadingMessage: string = "Loading items...";
-  export let noSelectionMessage: string = "Select item...";
-  export let alignEnd: boolean = false;
-  export let disabled: boolean = false;
+  let {
+    items = [],
+    selectedItem = $bindable(),
+    isLoading = false,
+    noItemsMessage = "No items available",
+    loadingMessage = "Loading items...",
+    noSelectionMessage = "Select item...",
+    alignEnd = false,
+    disabled = false,
+  } = $props();
 
-  let hasItems: boolean = false;
-  let searchTerm: string = "";
-  let dropDownItems: Item[] = [];
-  let fuse = new Fuse(items, { keys: ["label"] });
-  let selectedItemLabel = "";
-  let navigationIndex = -1;
+  let searchTerm: string = $state("");
+  let dropDownItems: Item[] = $state([]);
+  let selectedItemLabel = $state("");
+  let navigationIndex = $state(-1);
+
   let searchElement: HTMLInputElement;
   let dropdownElement: HTMLButtonElement;
   let bsDropdown: bootstrap.Dropdown | null;
 
-  $: hasItems = items.length > 0;
-  $: items, onItemsChanged();
-  $: {
-    if (isLoading) {
-      bsDropdown?.hide();
-    }
-  }
-  $: selectedItem && onSelectedItemChanged();
+  let fuse = new Fuse(items, { keys: ["label"] });
+
+  let hasItems: boolean = $derived(items.length > 0);
+
+  $effect(() => {
+    items !== null &&
+      untrack(() => {
+        onItemsChanged();
+      });
+  });
+  $effect(() => {
+    isLoading &&
+      untrack(() => {
+        bsDropdown?.hide();
+      });
+  });
+  $effect(() => {
+    selectedItem &&
+      untrack(() => {
+        onSelectedItemChanged();
+      });
+  });
 
   function resetSearch() {
     searchTerm = "";
@@ -104,7 +119,7 @@
     aria-expanded="false"
     disabled={disabled || !hasItems || isLoading}
     bind:this={dropdownElement}
-    on:click={() => searchElement.focus()}
+    onclick={() => searchElement.focus()}
   >
     {#if isLoading}
       {loadingMessage}
@@ -116,16 +131,16 @@
       {selectedItemLabel}
     {/if}
   </button>
-  <ul class="dropdown-menu pt-0" class:dropdown-menu-end={alignEnd}>
-    <div class="mb-3 mt-0">
+  <ul class="dropdown-menu" class:dropdown-menu-end={alignEnd}>
+    <div class="my-2 mx-3">
       <input
         type="text"
         class="form-control"
         placeholder="Search..."
         bind:this={searchElement}
         bind:value={searchTerm}
-        on:input={onSearchUpdate}
-        on:keydown={onSearchNavigate}
+        oninput={onSearchUpdate}
+        onkeydown={onSearchNavigate}
       />
     </div>
     {#if dropDownItems.length === 0}
@@ -141,8 +156,8 @@
           href={"#"}
           data-value={dropDownItem.value}
           data-index={i}
-          on:mouseenter={() => (navigationIndex = i)}
-          on:click={onItemSelect}>{dropDownItem.label}</a
+          onmouseenter={() => (navigationIndex = i)}
+          onclick={onItemSelect}>{dropDownItem.label}</a
         >
       </li>
     {/each}

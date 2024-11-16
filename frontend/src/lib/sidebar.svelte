@@ -1,28 +1,36 @@
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, untrack } from "svelte";
   import SidebarItem, {
     type SidebarItemSelectEvent,
   } from "./sidebarItem.svelte";
   import client from "./grpc/client";
   import { ShowAlert } from "./alerts.svelte";
   import { Refresher } from "./grpc/refresher";
+  import { SvelteMap } from "svelte/reactivity";
 
-  export let context = "";
-  export let selectedGroup = "";
-  export let selectedVersion = "";
-  export let selectedResource = "";
-  export let selectedNamespaced = false;
+  let {
+    context = "",
+    group = $bindable(""),
+    version = $bindable(""),
+    resource = $bindable(""),
+    namespaced = $bindable(false),
+  } = $props();
 
-  let apis: Map<
+  let apis: SvelteMap<
     { group: string; version: string },
     { name: string; namespaced: boolean }[]
-  > | null = null;
+  > = new SvelteMap();
 
-  let isLoadingSidebar: boolean = false;
+  let isLoadingSidebar: boolean = $state(false);
 
   let sidebarRefresher: Refresher | null = null;
 
-  $: context, onParamsChange();
+  $effect(() => {
+    context !== null &&
+      untrack(() => {
+        onParamsChange();
+      });
+  });
 
   async function loadSidebar(signal: AbortSignal) {
     if (!context) {
@@ -35,7 +43,7 @@
       await client
     ).discover({ context: context }, { signal: signal });
 
-    apis = new Map();
+    apis.clear();
 
     const apiKeys = Object.keys(res.apis).sort();
 
@@ -53,7 +61,7 @@
   }
 
   function onParamsChange() {
-    apis = null;
+    apis.clear();
 
     (async () => {
       isLoadingSidebar = true;
@@ -63,10 +71,7 @@
   }
 
   function onSelect(event: SidebarItemSelectEvent) {
-    selectedGroup = event.detail.group;
-    selectedVersion = event.detail.version;
-    selectedResource = event.detail.name;
-    selectedNamespaced = event.detail.namespaced;
+    ({ group, version, resource, namespaced } = event);
   }
 
   onMount(() => {
@@ -96,7 +101,7 @@
             group={gv.group}
             version={gv.version}
             {resources}
-            on:select={onSelect}
+            select={onSelect}
           />
         {/each}
       {/if}

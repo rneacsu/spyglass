@@ -1,24 +1,35 @@
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, untrack } from "svelte";
   import client from "./grpc/client";
   import type { ListResourceTabularReply } from "./grpc/proto/kube_pb";
   import { ShowAlert } from "./alerts.svelte";
   import { Refresher } from "./grpc/refresher";
 
-  export let context: string;
-  export let namespace: string;
-  export let group: string;
-  export let version: string;
-  export let resource: string;
-  export let namespaced: boolean;
+  let {
+    context = "",
+    namespace = "",
+    group = "",
+    version = "",
+    resource = "",
+    namespaced = false,
+  } = $props();
 
-  let table: ListResourceTabularReply | null = null;
+  let table: ListResourceTabularReply | null = $state(null);
 
-  let isLoadingTable: boolean = false;
+  let isLoadingTable: boolean = $state(false);
 
   let tableRefresher: Refresher | null = null;
 
-  $: context, namespace, group, version, resource, onParamsChange();
+  $effect(() => {
+    context !== null &&
+      namespace !== null &&
+      group !== null &&
+      version !== null &&
+      resource !== null &&
+      untrack(() => {
+        onParamsChange();
+      });
+  });
 
   async function loadTable(signal: AbortSignal) {
     if (!context || !version || !resource) {
@@ -32,7 +43,7 @@
     ).listResourceTabular(
       {
         context,
-        namespace: (!namespaced || namespace === "__all__") ? "" : namespace,
+        namespace: !namespaced || namespace === "__all__" ? "" : namespace,
         gvr: { group, version, resource },
       },
       { signal: signal },

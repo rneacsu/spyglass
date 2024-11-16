@@ -4,50 +4,51 @@
   import Sidebar from "$lib/sidebar.svelte";
   import Table from "$lib/table.svelte";
 
-  let selectedContext: string = "";
-  let selectedNamespace: string = "";
-
-  let selectedGroup: string = "";
-  let selectedVersion: string = "";
-  let selectedResource: string = "";
-  let selectedNamespaced: boolean = false;
+  let selected = $state({
+    context: "",
+    namespace: "",
+    group: "",
+    version: "",
+    resource: "",
+    namespaced: false,
+  });
 </script>
 
 <div class="h-100 d-flex flex-column">
   <Navbar
-    bind:selectedContext
-    bind:selectedNamespace
-    namespaced={selectedNamespaced}
+    bind:context={selected.context}
+    bind:namespace={selected.namespace}
+    namespaced={selected.namespaced}
   />
   <Alerts />
 
   <div class="d-flex flex-row h-0 flex-grow-1">
     <Sidebar
-      context={selectedContext}
-      bind:selectedGroup
-      bind:selectedVersion
-      bind:selectedResource
-      bind:selectedNamespaced
+      context={selected.context}
+      bind:group={selected.group}
+      bind:version={selected.version}
+      bind:resource={selected.resource}
+      bind:namespaced={selected.namespaced}
     />
 
     <div
       class="container-fluid py-2 flex-grow-1 w-0 position-relative overflow-y-hidden"
     >
-      <div class="backlogo" />
+      <div class="backlogo"></div>
       <Table
-        context={selectedContext}
-        namespace={selectedNamespace}
-        group={selectedGroup}
-        version={selectedVersion}
-        resource={selectedResource}
-        namespaced={selectedNamespaced}
+        context={selected.context}
+        namespace={selected.namespace}
+        group={selected.group}
+        version={selected.version}
+        resource={selected.resource}
+        namespaced={selected.namespaced}
       />
     </div>
   </div>
 </div>
 
 <style lang="scss">
-  @import "bootswatch/dist/flatly/variables";
+  @use "../../node_modules/bootswatch/dist/flatly/variables";
 
   .backlogo {
     position: absolute;
@@ -55,7 +56,7 @@
     top: 50%;
     width: 200px;
     height: 200px;
-    background: $gray-800;
+    background: variables.$gray-800;
     transform: translate(-50%, -50%);
     z-index: -100;
 

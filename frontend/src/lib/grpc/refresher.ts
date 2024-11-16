@@ -5,7 +5,6 @@ export interface RefresherHandler {
   onError(err: ConnectError): void;
 }
 
-
 export class Refresher {
 
   private abortController: AbortController | null = null;

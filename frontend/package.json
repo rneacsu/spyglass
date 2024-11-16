@@ -1,6 +1,5 @@
 {
 	"name": "frontend",
-	"version": "0.0.1",
 	"private": true,
 	"scripts": {
 		"dev": "vite dev",
@@ -10,21 +9,21 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-static": "^3.0.5",
-		"@sveltejs/kit": "^2.6.1",
-		"@sveltejs/vite-plugin-svelte": "^3.1.2",
+		"@sveltejs/adapter-static": "^3.0.6",
+		"@sveltejs/kit": "^2.8.1",
+		"@sveltejs/vite-plugin-svelte": "^4.0.1",
 		"@types/bootstrap": "^5.2.10",
-		"sass": "^1.79.4",
-		"svelte": "^4.2.19",
-		"svelte-check": "^4.0.4",
-		"typescript": "^5.6.2",
-		"vite": "^5.4.8"
+		"sass": "^1.81.0",
+		"svelte": "^5.2.0",
+		"svelte-check": "^4.0.8",
+		"typescript": "^5.6.3",
+		"vite": "^5.4.11"
 	},
 	"type": "module",
 	"dependencies": {
 		"@bufbuild/protobuf": "^1.10.0",
-		"@connectrpc/connect": "^1.5.0",
-		"@connectrpc/connect-web": "^1.5.0",
+		"@connectrpc/connect": "^1.6.1",
+		"@connectrpc/connect-web": "^1.6.1",
 		"@popperjs/core": "^2.11.8",
 		"bootstrap": "^5.3.3",
 		"bootstrap-icons": "^1.11.3",

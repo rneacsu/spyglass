@@ -2,27 +2,33 @@
   import client from "./grpc/client";
   import { ConnectError } from "@connectrpc/connect";
   import Dropdown, { type Item } from "./dropdown.svelte";
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, untrack } from "svelte";
   import { ShowAlert } from "./alerts.svelte";
   import { Refresher } from "./grpc/refresher";
+  import { autoTheme } from "./autotheme/autoTheme.svelte";
 
-  export let title = "SpyGlass";
+  let {
+    title = "SpyGlass",
+    namespaced = false,
+    context = $bindable(""),
+    namespace = $bindable(""),
+  } = $props();
 
-  let contextItems: Item[] = [];
-  export let selectedContext: string = "";
-
-  export let namespaced: boolean = false;
-
-  let namespaceItems: Item[] = [];
-  let namespaceLoading: boolean = false;
-  export let selectedNamespace: string = "";
+  let contextItems: Item[] = $state([]);
+  let namespaceItems: Item[] = $state([]);
+  let namespaceLoading: boolean = $state(false);
 
   let namespaceRefresher: Refresher | null = null;
 
-  $: selectedContext, onContextChange();
+  $effect(() => {
+    context !== null &&
+      untrack(() => {
+        onContextChange();
+      });
+  });
 
   async function loadNamespaces(abort: AbortSignal) {
-    if (!selectedContext) {
+    if (!context) {
       return;
     }
 
@@ -33,7 +39,7 @@
         await client
       ).listResource(
         {
-          context: selectedContext,
+          context: context,
           gvr: {
             group: "",
             version: "v1",
@@ -74,7 +80,7 @@
           label: context,
           value: context,
         }));
-        selectedContext = defaultContextResponse.context;
+        context = defaultContextResponse.context;
 
         namespaceRefresher = new Refresher({
           refresh: loadNamespaces,
@@ -94,12 +100,12 @@
 </script>
 
 <div>
-  <nav class="navbar navbar-expand bg-primary">
+  <nav class="navbar navbar-expand bg-primary" data-bs-theme="dark">
     <div class="container-fluid">
       <a
         class="navbar-brand"
         href={"#"}
-        on:click={() => {
+        onclick={() => {
           ShowAlert("info", "This is a test alert");
         }}>{title}</a
       >
@@ -114,7 +120,11 @@
       >
         <span class="navbar-toggler-icon"></span>
       </button>
-      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <div
+        class="collapse navbar-collapse"
+        id="navbarSupportedContent"
+        data-bs-theme={autoTheme.theme}
+      >
         <ul class="navbar-nav me-auto mb-2 mb-lg-0"></ul>
         <div class="d-flex">
           {#if namespaced}
@@ -123,7 +133,7 @@
                 alignEnd={true}
                 isLoading={namespaceLoading}
                 items={namespaceItems}
-                bind:selectedItem={selectedNamespace}
+                bind:selectedItem={namespace}
                 noItemsMessage="No namespaces"
                 loadingMessage="Loading namespaces..."
                 noSelectionMessage="Select namespace..."
@@ -132,9 +142,8 @@
           {/if}
           <Dropdown
             alignEnd={true}
-            isLoading={contextItems.length === 0}
             items={contextItems}
-            bind:selectedItem={selectedContext}
+            bind:selectedItem={context}
             noItemsMessage="No contexts"
             loadingMessage="Loading contexts..."
             noSelectionMessage="Select context..."

@@ -1,11 +1,12 @@
 <script lang="ts">
+  import AutoTheme from "$lib/autotheme/autoTheme.svelte";
 
-import "../app.scss";
-import 'bootstrap'
-import AutoTheme from "$lib/autotheme";
+  let { children } = $props();
 
-AutoTheme();
-
+  import "../app.scss";
+  import "bootstrap";
 </script>
 
-<slot />
+<AutoTheme />
+
+{@render children()}

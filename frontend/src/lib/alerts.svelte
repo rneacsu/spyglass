@@ -1,8 +1,4 @@
-<script lang="ts" context="module">
-  import { flip } from "svelte/animate";
-  import { writable } from "svelte/store";
-  import { fade, fly, scale, slide } from "svelte/transition";
-
+<script lang="ts" module>
   export class Alert {
     id: number;
     message: string;
@@ -38,12 +34,10 @@
   }
   export type AlertType = "default" | "success" | "info" | "warning" | "error";
 
-  let alerts = writable<Alert[]>([]);
+  let alerts: Alert[] = $state([]);
 
   function addAlert(alert: Alert) {
-    alerts.update((value) => {
-      return [alert, ...value];
-    });
+    alerts.unshift(alert);
 
     if (alert.timeout > 0) {
       alert.timeoutId = window.setTimeout(() => {
@@ -53,13 +47,14 @@
   }
 
   function removeAlert(id: number) {
-    alerts.update((value) => {
-      const alert = value.find((a) => a.id === id);
-      if (alert && alert.timeoutId) {
-        clearTimeout(alert.timeoutId);
-      }
-      return value.filter((a) => a.id !== id);
-    });
+    const alert = alerts.find((a) => a.id === id);
+    if (alert && alert.timeoutId) {
+      clearTimeout(alert.timeoutId);
+    }
+    alerts.splice(
+      alerts.findIndex((a) => a.id === id),
+      1,
+    );
   }
 
   export function ShowAlert(type: AlertType, message: string, timeout = 5000) {
@@ -68,15 +63,11 @@
 </script>
 
 <script lang="ts">
-  let alertItems: Alert[] = [];
-
-  alerts.subscribe((value) => {
-    alertItems = [...value];
-  });
+  import { fade } from "svelte/transition";
 </script>
 
 <div class="alertsContainer d-flex p-3 flex-column-reverse align-items-end">
-  {#each alertItems as alert (alert.id)}
+  {#each alerts as alert (alert.id)}
     <div
       class="alert alert-{alert.getAlertClass()} alert-dismissible mb-0 mt-3"
       role="alert"
@@ -89,7 +80,7 @@
         type="button"
         class="btn-close"
         aria-label="Close"
-        on:click={() => {
+        onclick={() => {
           removeAlert(alert.id);
         }}
       ></button>
@@ -106,7 +97,11 @@
     bottom: 0;
     right: 0;
     z-index: 1000;
-    mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) ($maxHeight - $fadeLength), rgba(0, 0, 0, 0) $maxHeight);
+    mask-image: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 1) ($maxHeight - $fadeLength),
+      rgba(0, 0, 0, 0) $maxHeight
+    );
     max-height: $maxHeight;
     overflow-y: hidden;
   }
