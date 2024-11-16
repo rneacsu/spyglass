@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package common;
+
+message Empty {}
+
+message GVR {
+  string group = 1;
+  string version = 2;
+  string resource = 3;
+}
+
+message GVK {
+  string group = 1;
+  string version = 2;
+  string kind = 3;
+}

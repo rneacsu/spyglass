@@ -5,9 +5,8 @@ import (
 	"sort"
 
 	"github.com/rneacsu5/spyglass/internal/logger"
-	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/tools/clientcmd"
@@ -90,15 +89,33 @@ func (ks *KubeService) getConnection(kubeContext string) (*KubeConnection, error
 	return connection, nil
 }
 
-func (ks *KubeService) ListResource(ctx context.Context, kubeContext string, gvr schema.GroupVersionResource) ([]*unstructured.Unstructured, error) {
+func (ks *KubeService) Discover(ctx context.Context, kubeContext string) ([]*metav1.APIResourceList, error) {
 	conn, err := ks.getConnection(kubeContext)
 	if err != nil {
 		return nil, err
 	}
 
-	watcher := conn.GetResourceWatcher(gvr)
+	resources, err := conn.Discover(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	objects, err := watcher.ListAll(ctx)
+	return resources, nil
+}
+
+func (ks *KubeService) ListResource(ctx context.Context, kubeContext string, gvr schema.GroupVersionResource, namespace string) ([]*unstructured.Unstructured, error) {
+	conn, err := ks.getConnection(kubeContext)
+	if err != nil {
+		return nil, err
+	}
+
+	watcher, err := conn.GetWatcher(gvr, namespace, WatcherTypeList)
+
+	if err != nil {
+		return nil, err
+	}
+
+	objects, err := watcher.(*ListWatcher).List(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -106,31 +123,22 @@ func (ks *KubeService) ListResource(ctx context.Context, kubeContext string, gvr
 	return objects, nil
 }
 
-func (ks *KubeService) GetNamespaces(ctx context.Context, kubeContext string) ([]string, error) {
+func (ks *KubeService) ListResourceTabular(ctx context.Context, kubeContext string, gvr schema.GroupVersionResource, namespace string) (*metav1.Table, error) {
 	conn, err := ks.getConnection(kubeContext)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := conn.GetResourceWatcher(schema.GroupVersionResource{
-		Group:    "",
-		Version:  "v1",
-		Resource: "namespaces",
-	}).ListAll(ctx)
+	watcher, err := conn.GetWatcher(gvr, namespace, WatcherTypeTable)
 
 	if err != nil {
 		return nil, err
 	}
 
-	namespaces := make([]string, 0, len(result))
-	for _, ns := range result {
-		var namespace v1.Namespace
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(ns.Object, &namespace)
-		if err != nil {
-			return nil, err
-		}
-		namespaces = append(namespaces, namespace.Name)
+	table, err := watcher.(*TableWatcher).GetTable(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	return namespaces, nil
+	return table, nil
 }

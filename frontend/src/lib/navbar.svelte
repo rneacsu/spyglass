@@ -1,89 +1,66 @@
 <script lang="ts">
   import client from "./grpc/client";
-  import { ConnectError, Code } from "@connectrpc/connect";
+  import { ConnectError } from "@connectrpc/connect";
   import Dropdown, { type Item } from "./dropdown.svelte";
   import { onDestroy, onMount } from "svelte";
   import { ShowAlert } from "./alerts.svelte";
+  import { Refresher } from "./grpc/refresher";
 
   export let title = "SpyGlass";
 
-  let contexts: string[] = [];
   let contextItems: Item[] = [];
-  let selectedContext: string = "";
+  export let selectedContext: string = "";
 
-  let isLoadingNamespaces: boolean = false;
+  export let namespaced: boolean = false;
 
-  let namespaces: string[] = [];
   let namespaceItems: Item[] = [];
-  let selectedNamespace: string = "";
+  let namespaceLoading: boolean = false;
+  export let selectedNamespace: string = "";
 
-  let namespaceAbort: AbortController | null = null;
-  let namespaceRefreshCancel: number | null = null;
+  let namespaceRefresher: Refresher | null = null;
 
-  $: selectedContext && onContextChange();
+  $: selectedContext, onContextChange();
 
-  function loadNamespaces() {
+  async function loadNamespaces(abort: AbortSignal) {
     if (!selectedContext) {
       return;
     }
-    if (namespaceAbort) {
-      namespaceAbort.abort();
-    }
-    namespaceAbort = new AbortController();
-    // ShowAlert("info", "Refreshing namespaces...");
 
-    const currentRefreshCancel = namespaceRefreshCancel;
+    ShowAlert("info", "Loading namespaces...");
 
-    client
-      .then(async (client) => {
-        const resources = (
-          await client.listResource({
+    const resources = (
+      await (
+        await client
+      ).listResource(
+        {
           context: selectedContext,
           gvr: {
             group: "",
             version: "v1",
             resource: "namespaces",
-          }
-        }, { signal: namespaceAbort?.signal })).resources;
+          },
+        },
+        { signal: abort },
+      )
+    ).resources;
 
-        namespaces = resources.map((resource) => resource.name);
-
-        if (namespaces.length > 0) {
-          namespaceItems = namespaces.map((namespace) => ({
-            label: namespace,
-            value: namespace,
-          }));
-          namespaceItems.unshift({ label: "All", value: "__all__" });
-        }
-        isLoadingNamespaces = false;
-        namespaceAbort = null;
-      })
-      .catch((e) => {
-        const err = ConnectError.from(e)
-        if (err.code != Code.Canceled) {
-          ShowAlert("error", ConnectError.from(e).message);
-          isLoadingNamespaces = false;
-        }
-      }).finally(() => {
-        if (currentRefreshCancel !== namespaceRefreshCancel) {
-          return;
-        }
-        namespaceRefreshCancel = window.setTimeout(() => {
-          loadNamespaces();
-        }, 5000);
-      });
+    if (resources.length > 0) {
+      namespaceItems = resources.map((ns) => ({
+        label: ns.name,
+        value: ns.name,
+      }));
+      namespaceItems.unshift({ label: "All", value: "__all__" });
+    }
   }
 
   function onContextChange() {
-    namespaces = [];
     namespaceItems = [];
-    isLoadingNamespaces = true;
-    if (namespaceRefreshCancel) {
-      window.clearTimeout(namespaceRefreshCancel);
-      namespaceRefreshCancel = null;
-    }
 
-    loadNamespaces();
+    (async () => {
+      namespaceLoading = true;
+      await namespaceRefresher?.refresh();
+      namespaceLoading = false;
+    })();
   }
 
   onMount(() => {
@@ -93,12 +70,18 @@
         const contextsResponse = await client.getContexts({});
         const defaultContextResponse = await client.getDefaultContext({});
 
-        contexts = contextsResponse.contexts;
-        contextItems = contexts.map((context) => ({
+        contextItems = contextsResponse.contexts.map((context) => ({
           label: context,
           value: context,
         }));
         selectedContext = defaultContextResponse.context;
+
+        namespaceRefresher = new Refresher({
+          refresh: loadNamespaces,
+          onError: (e) => {
+            ShowAlert("error", e.message);
+          },
+        });
       })
       .catch((e) => {
         ShowAlert("error", ConnectError.from(e).message);
@@ -106,23 +89,20 @@
   });
 
   onDestroy(() => {
-    if (namespaceAbort) {
-      namespaceAbort.abort();
-    }
-    if (namespaceRefreshCancel) {
-      window.clearTimeout(namespaceRefreshCancel);
-    }
+    namespaceRefresher?.abort();
   });
 </script>
 
 <div>
   <nav class="navbar navbar-expand bg-primary">
     <div class="container-fluid">
-      <a class="navbar-brand" href={"#"}
+      <a
+        class="navbar-brand"
+        href={"#"}
         on:click={() => {
           ShowAlert("info", "This is a test alert");
-        }}
-      >{title}</a>
+        }}>{title}</a
+      >
       <button
         class="navbar-toggler"
         type="button"
@@ -137,20 +117,22 @@
       <div class="collapse navbar-collapse" id="navbarSupportedContent">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0"></ul>
         <div class="d-flex">
-          <div class="me-3">
-            <Dropdown
-              alignEnd={true}
-              isLoading={isLoadingNamespaces}
-              items={namespaceItems}
-              bind:selectedItem={selectedNamespace}
-              noItemsMessage="No namespaces"
-              loadingMessage="Loading namespaces..."
-              noSelectionMessage="Select namespace..."
-            />
-          </div>
+          {#if namespaced}
+            <div class="me-3">
+              <Dropdown
+                alignEnd={true}
+                isLoading={namespaceLoading}
+                items={namespaceItems}
+                bind:selectedItem={selectedNamespace}
+                noItemsMessage="No namespaces"
+                loadingMessage="Loading namespaces..."
+                noSelectionMessage="Select namespace..."
+              />
+            </div>
+          {/if}
           <Dropdown
             alignEnd={true}
-            isLoading={contexts.length === 0}
+            isLoading={contextItems.length === 0}
             items={contextItems}
             bind:selectedItem={selectedContext}
             noItemsMessage="No contexts"

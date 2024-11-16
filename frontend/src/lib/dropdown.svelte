@@ -14,7 +14,9 @@
   export let loadingMessage: string = "Loading items...";
   export let noSelectionMessage: string = "Select item...";
   export let alignEnd: boolean = false;
+  export let disabled: boolean = false;
 
+  let hasItems: boolean = false;
   let searchTerm: string = "";
   let dropDownItems: Item[] = [];
   let fuse = new Fuse(items, { keys: ["label"] });
@@ -100,7 +102,7 @@
     data-bs-toggle="dropdown"
     type="button"
     aria-expanded="false"
-    disabled={!hasItems || isLoading}
+    disabled={disabled || !hasItems || isLoading}
     bind:this={dropdownElement}
     on:click={() => searchElement.focus()}
   >

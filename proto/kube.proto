@@ -2,15 +2,19 @@ syntax = "proto3";
 
 package kube;
 
+import "common.proto";
+import "google/protobuf/struct.proto";
+
 service Kube {
-  rpc GetContexts (Empty) returns (ContextsReply) {}
-  rpc GetDefaultContext (Empty) returns (ContextReply) {}
+  rpc GetContexts (common.Empty) returns (ContextsReply) {}
+  rpc GetDefaultContext (common.Empty) returns (ContextReply) {}
+
+  rpc Discover (DiscoverRequest) returns (DiscoverReply) {}
 
   rpc ListResource (ListResourceRequest) returns (ListResourceReply) {}
-  // rpc ListScopedResource (ListScopedResourceRequest) returns (ListResourceReply) {}
+  rpc ListResourceTabular (ListResourceRequest) returns (ListResourceTabularReply) {}
 }
 
-message Empty {}
 
 message ContextsReply {
   repeated string contexts = 1;
@@ -20,29 +24,52 @@ message ContextReply {
   string context = 1;
 }
 
-message GVR {
+message DiscoverRequest {
+  string context = 1;
+}
+
+message DiscoverReply {
+  map<string, DiscoverApi> apis = 1;
+}
+
+message DiscoverApi {
   string group = 1;
   string version = 2;
-  string resource = 3;
+  repeated DiscoverResource resources = 3;
+}
+
+message DiscoverResource {
+  string name = 1;
+  bool namespaced = 2;
 }
 
 message ListResourceRequest {
   string context = 1;
-  GVR gvr = 2;
-}
-
-message ListScopedResourceRequest {
-  string context = 1;
-  string namespace = 2;
-  GVR gvr = 3;
+  optional string namespace = 2;
+  common.GVR gvr = 3;
 }
 
 message ListResourceReply {
   repeated Resource resources = 1;
 }
 
+message ListResourceTabularReply {
+  message TabularColumn {
+    string name = 1;
+    string type = 2;
+  }
+  message TabularRow {
+    repeated string cells = 1;
+    Resource resource = 2;
+  }
+
+  repeated TabularColumn columns = 1;
+  repeated TabularRow rows = 2;
+}
+
 message Resource {
   string name = 1;
   string namespace = 2;
-  GVR gvr = 3;
+  common.GVK gvk = 3;
+  google.protobuf.Struct raw = 4;
 }
