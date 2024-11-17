@@ -32,7 +32,7 @@
       return;
     }
 
-    ShowAlert("info", "Loading namespaces...");
+    // ShowAlert("info", "Loading namespaces...");
 
     const resources = (
       await (

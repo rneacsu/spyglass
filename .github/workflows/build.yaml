@@ -111,7 +111,7 @@ jobs:
       - name: Build and Package App for macOS
         if: runner.os == 'macOS'
         run: |
-          wails build --platform ${{ matrix.build.os }}/${{ matrix.build.arch }} -o ${{ env.output_name }}
+          wails build -platform ${{ matrix.build.os }}/${{ matrix.build.arch }} -o ${{ env.output_name }}
           npx create-dmg@${{ env.create_dmg_version }} "build/bin/${{ env.output_name }}.app" build/bin/ || true
           rm -rf "build/bin/${{ env.output_name }}.app"
           dmg_path="build/bin/${{ env.output_name }} ${{ env.app_version }}.dmg"

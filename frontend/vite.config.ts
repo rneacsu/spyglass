@@ -10,5 +10,11 @@ export default defineConfig({
 				quietDeps: true,
 			}
 		}
-	}
+	},
+	server: {
+		hmr: {
+			host: 'localhost',
+			protocol: 'ws',
+		}
+	},
 });

@@ -1,7 +1,7 @@
 <script lang="ts">
   import Alerts from "$lib/alerts.svelte";
   import Navbar from "$lib/navbar.svelte";
-  import Sidebar from "$lib/sidebar.svelte";
+  import Sidebar from "$lib/sidebar/sidebar.svelte";
   import Table from "$lib/table.svelte";
 
   let selected = $state({
@@ -48,15 +48,13 @@
 </div>
 
 <style lang="scss">
-  @use "../../node_modules/bootswatch/dist/flatly/variables";
-
   .backlogo {
     position: absolute;
     left: 50%;
     top: 50%;
     width: 200px;
     height: 200px;
-    background: variables.$gray-800;
+    background: var(--bs-secondary-bg);
     transform: translate(-50%, -50%);
     z-index: -100;
 

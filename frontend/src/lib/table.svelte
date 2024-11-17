@@ -36,7 +36,7 @@
       return;
     }
 
-    ShowAlert("info", "Loading table...");
+    // ShowAlert("info", "Loading table...");
 
     table = await (
       await client
