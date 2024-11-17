@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"path"
+	"regexp"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,7 +47,9 @@ func NewKubeConnection(kubeConfig *api.Config, kubeContext string) (*KubeConnect
 	}).DialContext
 
 	// TODO: use XDG Base Directory Specification
-	discoveryCacheDir := path.Join(clientcmd.RecommendedConfigDir, "cache", "discovery")
+	reg := regexp.MustCompile(`[:/\/<>?#]`)
+	cacheKey := reg.ReplaceAllString(clientConfig.Host, "_")
+	discoveryCacheDir := path.Join(clientcmd.RecommendedConfigDir, "cache", "discovery", cacheKey)
 
 	discoveryClient, err := disk.NewCachedDiscoveryClientForConfig(clientConfig, discoveryCacheDir, "", 10*time.Minute)
 

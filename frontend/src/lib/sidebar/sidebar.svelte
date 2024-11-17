@@ -5,7 +5,7 @@
   import { ShowAlert } from "../alerts.svelte";
   import { Refresher } from "../grpc/refresher";
   import { translate } from "../translator";
-  import structure from "./structure";
+  import { structure, hidden } from "./structure";
 
   let {
     context = "",
@@ -40,7 +40,11 @@
     return { group, version };
   }
 
-  function isActive(itemGroup: string, itemVersion: string, itemResource: string) {
+  function isActive(
+    itemGroup: string,
+    itemVersion: string,
+    itemResource: string,
+  ) {
     return (
       itemGroup === group &&
       itemVersion === version &&
@@ -71,7 +75,7 @@
       api.resources.sort((a, b) => a.name.localeCompare(b.name));
       for (const res of api.resources) {
         apiGroup.set(res.name, { namespaced: res.namespaced });
-        apisFlattened.set(gvrToKey(api.group,api.version, res.name), {
+        apisFlattened.set(gvrToKey(api.group, api.version, res.name), {
           namespaced: res.namespaced,
         });
       }
@@ -118,6 +122,18 @@
       }
     }
 
+    for (const hiddenResource of hidden) {
+      const gvrKey = gvrToKey(
+        hiddenResource.group,
+        hiddenResource.version,
+        hiddenResource.resource,
+      );
+      const gvKey = gvToKey(hiddenResource.group, hiddenResource.version);
+
+      apisGrouped.get(gvKey)?.delete(hiddenResource.resource);
+      apisFlattened.delete(gvrKey);
+    }
+
     const otherItems: SidebarItemConfig[] = [];
 
     for (const [gv, resources] of apisGrouped.entries()) {
@@ -158,6 +174,12 @@
         active: otherItems.some((item) => item.active),
       });
     }
+
+    if (items.every((item) => !item.active)) {
+      group = "";
+      version = "";
+      resource = "";
+    }
   }
 
   function onParamsChange() {
@@ -172,7 +194,7 @@
 
   function updateActiveItem(item: SidebarItemConfig) {
     if (item.items.length > 0) {
-      item.items.forEach(updateActiveItem)
+      item.items.forEach(updateActiveItem);
       item.active = item.items.some((subItem) => subItem.active);
     } else if (item.data) {
       item.active = isActive(
@@ -205,17 +227,16 @@
   });
 </script>
 
-<ul class="sidebar list-unstyled mb-0 ps-3 py-3 overflow-y-auto border-end border-dark-subtle">
+<ul
+  class="sidebar list-unstyled mb-0 ps-3 py-3 overflow-y-auto border-end border-dark-subtle"
+>
   {#if isLoadingSidebar}
     <li>Loading...</li>
   {:else if items.length === 0}
     <li>No resources found</li>
   {:else}
     {#each items.values() as item (item.text)}
-      <SidebarItem
-        config={item}
-        select={onSelect}
-      />
+      <SidebarItem config={item} select={onSelect} />
     {/each}
   {/if}
 </ul>
@@ -225,5 +246,4 @@
     min-width: 200px;
     max-width: 400px;
   }
-
 </style>

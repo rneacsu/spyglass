@@ -33,6 +33,7 @@
 
   async function loadTable(signal: AbortSignal) {
     if (!shouldDisplay) {
+      table.init({});
       return;
     }
 
