@@ -14,8 +14,8 @@
 		"@sveltejs/vite-plugin-svelte": "^4.0.1",
 		"@types/bootstrap": "^5.2.10",
 		"sass": "^1.81.0",
-		"svelte": "^5.2.0",
-		"svelte-check": "^4.0.8",
+		"svelte": "^5.2.2",
+		"svelte-check": "^4.0.9",
 		"typescript": "^5.6.3",
 		"vite": "^5.4.11"
 	},
@@ -28,6 +28,9 @@
 		"bootstrap": "^5.3.3",
 		"bootstrap-icons": "^1.11.3",
 		"bootswatch": "^5.3.3",
+		"datatables.net-bs5": "^2.1.8",
+		"datatables.net-plugins": "^2.1.7",
+		"datatables.net-scroller-bs5": "^2.4.3",
 		"fuse.js": "^7.0.0"
 	}
 }

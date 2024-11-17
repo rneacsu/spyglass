@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onDestroy, onMount, untrack } from "svelte";
   import client from "./grpc/client";
-  import type { ListResourceTabularReply } from "./grpc/proto/kube_pb";
   import { ShowAlert } from "./alerts.svelte";
   import { Refresher } from "./grpc/refresher";
+  import DataTable from "./datatable/dataTable.svelte";
 
   let {
     context = "",
@@ -14,11 +14,11 @@
     namespaced = false,
   } = $props();
 
-  let table: ListResourceTabularReply | null = $state(null);
-
-  let isLoadingTable: boolean = $state(false);
-
+  let table: DataTable;
   let tableRefresher: Refresher | null = null;
+  let recreateTable: boolean = false;
+
+  let shouldDisplay = $derived(context && version && resource);
 
   $effect(() => {
     context !== null &&
@@ -32,13 +32,11 @@
   });
 
   async function loadTable(signal: AbortSignal) {
-    if (!context || !version || !resource) {
+    if (!shouldDisplay) {
       return;
     }
 
-    // ShowAlert("info", "Loading table...");
-
-    table = await (
+    const data = await (
       await client
     ).listResourceTabular(
       {
@@ -48,15 +46,27 @@
       },
       { signal: signal },
     );
+
+    const rowData = data.rows.map((r) => r.cells);
+
+    if (recreateTable) {
+      table.init({
+        columns: data.columns.map((c) => ({ title: c.name })),
+        data: rowData,
+      });
+      recreateTable = false;
+    } else {
+      table?.replaceData(rowData);
+    }
   }
 
   function onParamsChange() {
-    table = null;
+    recreateTable = true;
 
     (async () => {
-      isLoadingTable = true;
+      table.processing(true);
       await tableRefresher?.refresh();
-      isLoadingTable = false;
+      table.processing(false);
     })();
   }
 
@@ -67,6 +77,9 @@
         ShowAlert("error", e.message);
       },
     });
+    if (shouldDisplay) {
+      tableRefresher?.refresh();
+    }
   });
 
   onDestroy(() => {
@@ -74,41 +87,12 @@
   });
 </script>
 
-<div class="h-100 overflow-y-auto">
-  {#if isLoadingTable}
-    <div class="mt-5 d-flex justify-content-center">
-      <div class="spinner-border" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-    </div>
-  {:else}
-    <table class="table table-striped table-hover table-sm">
-      <thead>
-        <tr>
-          {#if table}
-            {#each table.columns as column}
-              <th>{column.name}</th>
-            {/each}
-          {/if}
-        </tr>
-      </thead>
-      <tbody>
-        {#if table}
-          {#if table.rows.length === 0}
-            <tr>
-              <td colspan={table.columns.length}>No items found</td>
-            </tr>
-          {:else}
-            {#each table.rows as row}
-              <tr>
-                {#each row.cells as cell}
-                  <td>{cell}</td>
-                {/each}
-              </tr>
-            {/each}
-          {/if}
-        {/if}
-      </tbody>
-    </table>
-  {/if}
+<div class="table-wrapper h-100">
+  <DataTable bind:this={table} />
 </div>
+
+<style lang="scss">
+  .table-wrapper {
+    padding-bottom: 0.75rem;
+  }
+</style>

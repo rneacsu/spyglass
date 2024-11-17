@@ -39,7 +39,7 @@ export class Refresher {
 
     this.abortController = new AbortController();
 
-    this.handler.refresh(this.abortController.signal)
+    await this.handler.refresh(this.abortController.signal)
       .then(() => {
         this.afterRefresh();
       })
