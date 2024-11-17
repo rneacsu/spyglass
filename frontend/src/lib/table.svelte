@@ -94,5 +94,6 @@
 <style lang="scss">
   .table-wrapper {
     padding-bottom: 0.75rem;
+    background: var(--bs-body-bg);
   }
 </style>
