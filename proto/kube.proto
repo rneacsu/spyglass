@@ -4,6 +4,7 @@ package kube;
 
 import "common.proto";
 import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
 
 service Kube {
   rpc GetContexts (common.Empty) returns (ContextsReply) {}
@@ -72,4 +73,5 @@ message Resource {
   string namespace = 2;
   common.GVK gvk = 3;
   google.protobuf.Struct raw = 4;
+  google.protobuf.Timestamp created = 5;
 }

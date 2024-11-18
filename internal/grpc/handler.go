@@ -9,6 +9,9 @@ import (
 	"github.com/rneacsu5/spyglass/internal/grpc/proto"
 	"github.com/rneacsu5/spyglass/internal/kubernetes"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -157,6 +160,28 @@ func (kh *kubeHandler) ListResourceTabular(ctx context.Context, req *connect.Req
 		}
 		for _, cell := range row.Cells {
 			r.Cells = append(r.Cells, fmt.Sprintf("%v", cell))
+		}
+		pom := row.Object.Object.(*v1.PartialObjectMetadata)
+
+		objMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(pom)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		raw, err := structpb.NewStruct(objMap)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+
+		r.Resource = &proto.Resource{
+			Name:      pom.Name,
+			Namespace: pom.Namespace,
+			Gvk: &proto.GVK{
+				Group:   pom.GroupVersionKind().Group,
+				Version: pom.GroupVersionKind().Version,
+				Kind:    pom.GroupVersionKind().Kind,
+			},
+			Raw:     raw,
+			Created: timestamppb.New(pom.CreationTimestamp.Time),
 		}
 		response.Rows = append(response.Rows, r)
 	}

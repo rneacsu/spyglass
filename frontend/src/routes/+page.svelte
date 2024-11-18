@@ -2,7 +2,7 @@
   import Alerts from "$lib/alerts.svelte";
   import Navbar from "$lib/navbar.svelte";
   import Sidebar from "$lib/sidebar/sidebar.svelte";
-  import Table from "$lib/table.svelte";
+  import Table from "$lib/table/table.svelte";
 
   let selected = $state({
     context: "",

@@ -2,7 +2,7 @@ import { createConnectTransport } from "@connectrpc/connect-web";
 import { GetGRPCUrl } from "$lib/wailsjs/go/app/AppApi";
 import { LogInfo } from "$lib/wailsjs/runtime/runtime";
 import { createClient, type Client } from "@connectrpc/connect";
-import { Kube } from "./proto/kube_connect";
+import { Kube } from "./proto/kube_pb";
 
 class GRPCClientWrapper {
   client: Client<typeof Kube>;

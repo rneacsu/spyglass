@@ -16,9 +16,7 @@ plugins:
     opt:
       - paths=source_relative
 
-  - remote: buf.build/bufbuild/es:v1.10.0
-    out: frontend/src/lib/grpc/proto
-  - remote: buf.build/connectrpc/es:v1.5.0
+  - remote: buf.build/bufbuild/es:v2.2.0
     out: frontend/src/lib/grpc/proto
 
 inputs:

@@ -4,8 +4,8 @@
   import client from "../grpc/client";
   import { ShowAlert } from "../alerts.svelte";
   import { Refresher } from "../grpc/refresher";
-  import { translate } from "../translator";
-  import { structure, hidden } from "./structure";
+  import { translateResource } from "../translator";
+  import { structure, hidden } from "./config";
 
   let {
     context = "",
@@ -102,7 +102,7 @@
             namespaced: apiItems.namespaced,
           };
           subItems.push({
-            text: translate(gvrKey),
+            text: translateResource(gvrKey),
             data,
             items: [],
             active: isActive(data.group, data.version, data.resource),

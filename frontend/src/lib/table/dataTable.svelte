@@ -2,9 +2,10 @@
   import DataTable, { type Api, type Config } from "datatables.net-bs5";
   import "datatables.net-scroller-bs5";
   import "datatables.net-plugins/features/scrollResize/dataTables.scrollResize.mjs";
+  import "datatables.net-plugins/dataRender/ellipsis";
   import { onDestroy, onMount } from "svelte";
 
-  let table: Api<any> | null = null;
+  let table: Api<any>;
   let tableEl: HTMLTableElement;
   let theadEl: HTMLTableSectionElement;
   let tbodyEl: HTMLTableSectionElement;
@@ -20,27 +21,37 @@
     paging: false,
     // deferRender: true,
     // scroller: true,
+    columnDefs: [
+      {
+        targets: "_all",
+        render: DataTable.render.ellipsis(30),
+      }
+    ]
   };
 
   export function init(config: Config) {
     table?.destroy();
     theadEl.innerHTML = "";
     tbodyEl.innerHTML = "";
-    table = new DataTable(tableEl, { ...defaultOptions, ...config });
+
+    let options = { ...defaultOptions, ...config };
+    options.columnDefs = defaultOptions.columnDefs!.concat(config.columnDefs || []);
+
+    table = new DataTable(tableEl, options);
   }
 
   export function replaceData(data: any[]) {
-    table?.clear();
-    table?.rows.add(data);
-    table?.draw(false);
+    table.clear();
+    table.rows.add(data);
+    table.draw(false);
   }
 
   export function datatable() {
-    return table!;
+    return table;
   }
 
   export function processing(processing: boolean) {
-    table?.processing(processing);
+    table.processing(processing);
   }
 
   onMount(() => {
@@ -48,7 +59,7 @@
   });
 
   onDestroy(() => {
-    table?.destroy();
+    table.destroy();
   });
 </script>
 
@@ -56,3 +67,9 @@
   <thead bind:this={theadEl}> </thead>
   <tbody bind:this={tbodyEl}> </tbody>
 </table>
+
+<style lang="scss">
+  table {
+    word-break: break-all;
+  }
+</style>
