@@ -35,6 +35,7 @@ const translations: { [lang: string]: { [key: string]: string } } = {
     "resource::/v1::serviceaccounts": "Service Accounts",
     "tableColumn::MinPods": "Min Pods",
     "tableColumn::MaxPods": "Max Pods",
+    "tableCell::CrashLoopBackOff": "Crash Loop",
   }
 }
 
@@ -53,6 +54,10 @@ export function translate(str: string, def: string | undefined = undefined): str
 
 export function translateTableColumn(str: string): string {
   return translate(`tableColumn::${str}`, str);
+}
+
+export function translateTableCell(str: string): string {
+  return translate(`tableCell::${str}`, str);
 }
 
 export function translateResource(str: string): string {

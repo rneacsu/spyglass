@@ -21,12 +21,6 @@
     paging: false,
     // deferRender: true,
     // scroller: true,
-    columnDefs: [
-      {
-        targets: "_all",
-        render: DataTable.render.ellipsis(30),
-      }
-    ]
   };
 
   export function init(config: Config) {
@@ -34,10 +28,7 @@
     theadEl.innerHTML = "";
     tbodyEl.innerHTML = "";
 
-    let options = { ...defaultOptions, ...config };
-    options.columnDefs = defaultOptions.columnDefs!.concat(config.columnDefs || []);
-
-    table = new DataTable(tableEl, options);
+    table = new DataTable(tableEl, { ...defaultOptions, ...config });
   }
 
   export function replaceData(data: any[]) {
@@ -69,7 +60,4 @@
 </table>
 
 <style lang="scss">
-  table {
-    word-break: break-all;
-  }
 </style>

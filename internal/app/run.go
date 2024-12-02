@@ -4,6 +4,9 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"os"
+	"os/exec"
+	"runtime"
 
 	"github.com/rneacsu5/spyglass/internal/logger"
 	"github.com/wailsapp/wails/v2"
@@ -28,6 +31,30 @@ func parseWailsConfig(wailsConfig []byte) (*AppInfo, error) {
 	}, nil
 }
 
+func useLoginShellPath() error {
+	var cmd *exec.Cmd
+	if shell := os.Getenv("SHELL"); shell != "" {
+		cmd = exec.Command(shell, "-l", "-c", "echo $PATH")
+	} else if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/c", "echo %PATH%")
+	} else {
+		cmd = exec.Command("/bin/bash", "-l", "-c", "echo $PATH")
+	}
+
+	output, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("could not get PATH from shell: %w", err)
+	} else {
+		logger.Infof("setting PATH from shell: %s", output)
+		path := string(output)
+		if err = os.Setenv("PATH", path); err != nil {
+			return fmt.Errorf("could not set PATH from shell: %w", err)
+		}
+	}
+
+	return nil
+}
+
 type EmbeddedResources struct {
 	Assets      embed.FS
 	Icon        []byte
@@ -39,6 +66,10 @@ func Run(emb EmbeddedResources) error {
 		return fmt.Errorf("could not initialize global logger: %w", err)
 	}
 	defer func() { _ = logger.GlobalSync() }()
+
+	if err := useLoginShellPath(); err != nil {
+		logger.Warnw("could not set PATH from shell", "error", err)
+	}
 
 	app := NewApp()
 

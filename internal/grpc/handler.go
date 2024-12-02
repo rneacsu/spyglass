@@ -182,6 +182,7 @@ func (kh *kubeHandler) ListResourceTabular(ctx context.Context, req *connect.Req
 			},
 			Raw:     raw,
 			Created: timestamppb.New(pom.CreationTimestamp.Time),
+			Uid:     string(pom.UID),
 		}
 		response.Rows = append(response.Rows, r)
 	}

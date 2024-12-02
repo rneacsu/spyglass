@@ -5,12 +5,9 @@
   import { Refresher } from "../grpc/refresher";
   import DataTable from "./dataTable.svelte";
   import type { ConfigColumns } from "datatables.net-bs5";
-  import { overrides } from "./config";
-  import dayjs from "dayjs";
-  import relativeTime from "dayjs/plugin/relativeTime";
+  import { getConfig } from "./config";
   import { translateTableColumn } from "$lib/translator";
-
-  dayjs.extend(relativeTime);
+  import { renderDefault, renderRelativeTime } from "./render";
 
   let {
     context = "",
@@ -21,10 +18,10 @@
     namespaced = false,
   } = $props();
 
-  let table: DataTable;
+  let table: DataTable | null = null;
   let tableRefresher: Refresher | null = null;
   let recreateTable: boolean = false;
-  // let columnOrder: number[] = [];
+  let columnOrder: number[] = [];
 
   let shouldDisplay = $derived(context && version && resource);
 
@@ -41,7 +38,7 @@
 
   async function loadTable(signal: AbortSignal) {
     if (!shouldDisplay) {
-      table.init({});
+      table?.init({});
       return;
     }
 
@@ -56,25 +53,39 @@
       { signal: signal },
     );
 
-    let tableOverrides = overrides[`${group}/${version}::${resource}`];
+    let tableConfig = getConfig(group, version, resource);
 
-    let columns: ConfigColumns[] | undefined;
+    let columns: ConfigColumns[];
+
     if (recreateTable) {
-      // columnOrder = [];
-      const specialColumns = ["Name", "Age", "Namespace"];
-      columns = data.columns.map((c) => ({
-        title: c.name,
-        visible:
-          !specialColumns.includes(c.name) &&
-          !tableOverrides?.hiddenColumns.includes(c.name),
-          render: tableOverrides?.render?.[c.name],
-      }));
+      columns = [];
+      columnOrder = [];
 
-      if (namespaced) {
-        columns!.unshift({ title: "Namespace" });
-      }
-      columns.unshift({ title: "Name" });
-      columns!.push({ title: "Age" });
+      tableConfig.columnOrder.forEach((c) => {
+        let index = data.columns.findIndex((col) => col.name === c);
+        if (index !== -1) {
+          columnOrder.push(index);
+        }
+      })
+      data.columns.forEach((c, i) => {
+        if (!columnOrder.includes(i)) {
+          columnOrder.push(i);
+        }
+      });
+
+      columns = columnOrder.map((i) => {
+        const c = data.columns[i];
+        return {
+          title: c.name,
+          visible: !tableConfig.hiddenColumns.includes(c.name),
+          render: tableConfig.render[c.name],
+        };
+      });
+
+      columns.unshift({ name: "Namespace", title: "Namespace", visible: namespaced && namespace === "__all__" });
+      columns.unshift({ name: "Name", title: "Name", visible: tableConfig.showName });
+      columns.unshift({ name: "Id", title: "Id", visible: false });
+      columns.push({ name: "Age", title: "Age", visible: tableConfig.showAge, render: renderRelativeTime() });
 
       columns.forEach((c) => {
         // Translate columns
@@ -83,30 +94,33 @@
     }
 
     const rowData = data.rows.map((r) => {
-      let row: string[] = r.cells;
 
-      const age: string = dayjs
-        .unix(Number(r!.resource!.created!.seconds))
-        .fromNow();
+      // Reorder columns
+      let row: any[] = columnOrder.map((i) => r.cells[i]);
 
-      row.push(age);
-
-      if (namespaced) {
-        row.unshift(r.resource!.namespace);
-      }
+      row.unshift(r.resource!.namespace);
       row.unshift(r.resource!.name);
+      row.unshift(r.resource!.uid);
+      row.push(r!.resource!.created!.seconds);
 
       return row;
     });
 
     if (recreateTable) {
-      table.init({
-        columns: columns,
+      table?.init({
+        columns: columns!,
         data: rowData,
+        order: tableConfig.defaultOrder,
+        columnDefs: [
+          {
+            targets: "_all",
+            render: renderDefault(),
+          },
+        ],
       });
       recreateTable = false;
     } else {
-      table.replaceData(rowData);
+      table?.replaceData(rowData);
     }
   }
 
@@ -114,9 +128,9 @@
     recreateTable = true;
 
     (async () => {
-      table.processing(true);
+      table?.processing(true);
       await tableRefresher?.refresh();
-      table.processing(false);
+      table?.processing(false);
     })();
   }
 
@@ -145,5 +159,14 @@
   .table-wrapper {
     padding-bottom: 0.75rem;
     background: var(--bs-body-bg);
+
+    :global(table) {
+      :global(th),
+      :global(td) {
+        :global(span) {
+          max-width: 200px;
+        }
+      }
+    }
   }
 </style>

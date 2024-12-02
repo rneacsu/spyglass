@@ -74,4 +74,5 @@ message Resource {
   common.GVK gvk = 3;
   google.protobuf.Struct raw = 4;
   google.protobuf.Timestamp created = 5;
+  string uid = 6;
 }
