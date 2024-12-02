@@ -31,21 +31,20 @@ func parseWailsConfig(wailsConfig []byte) (*AppInfo, error) {
 	}, nil
 }
 
-func useLoginShellPath() error {
-	var cmd *exec.Cmd
-
-	if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd", "/c", "echo %PATH%")
-	} else {
-		shell, exists := os.LookupEnv("SHELL")
-		if !exists {
-			shell = "/bin/bash"
-			logger.Warnf("could not find SHELL environment variable, using %s", shell)
-		}
-		cmd = exec.Command(shell, "-i", "-c", "echo $PATH")
+func useInteractiveShellPath() error {
+	if runtime.GOOS != "darwin" {
+		return nil
 	}
 
+	shell, exists := os.LookupEnv("SHELL")
+	if !exists {
+		shell = "/bin/zsh"
+		logger.Warnf("could not find SHELL environment variable, using %s", shell)
+	}
+
+	cmd := exec.Command(shell, "-i", "-c", "echo $PATH")
 	output, err := cmd.Output()
+
 	if err != nil {
 		return fmt.Errorf("could not get PATH from shell: %w", err)
 	} else {
@@ -71,8 +70,8 @@ func Run(emb EmbeddedResources) error {
 	}
 	defer func() { _ = logger.GlobalSync() }()
 
-	if err := useLoginShellPath(); err != nil {
-		logger.Warnw("could not set PATH from shell", "error", err)
+	if err := useInteractiveShellPath(); err != nil {
+		logger.Warnw("could not set PATH from interactive shell", "error", err)
 	}
 
 	app := NewApp()
