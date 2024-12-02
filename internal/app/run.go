@@ -33,12 +33,16 @@ func parseWailsConfig(wailsConfig []byte) (*AppInfo, error) {
 
 func useLoginShellPath() error {
 	var cmd *exec.Cmd
-	if shell := os.Getenv("SHELL"); shell != "" {
-		cmd = exec.Command(shell, "-l", "-c", "echo $PATH")
-	} else if runtime.GOOS == "windows" {
+
+	if runtime.GOOS == "windows" {
 		cmd = exec.Command("cmd", "/c", "echo %PATH%")
 	} else {
-		cmd = exec.Command("/bin/bash", "-l", "-c", "echo $PATH")
+		shell, exists := os.LookupEnv("SHELL")
+		if !exists {
+			shell = "/bin/bash"
+			logger.Warnf("could not find SHELL environment variable, using %s", shell)
+		}
+		cmd = exec.Command(shell, "-i", "-c", "echo $PATH")
 	}
 
 	output, err := cmd.Output()
