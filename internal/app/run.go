@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"runtime"
 
-	"github.com/rneacsu5/spyglass/internal/logger"
+	"github.com/rneacsu/spyglass/internal/logger"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"

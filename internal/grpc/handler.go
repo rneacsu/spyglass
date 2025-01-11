@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
-	"github.com/rneacsu5/spyglass/internal/grpc/proto"
-	"github.com/rneacsu5/spyglass/internal/kubernetes"
+	"github.com/rneacsu/spyglass/internal/grpc/proto"
+	"github.com/rneacsu/spyglass/internal/kubernetes"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

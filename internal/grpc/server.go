@@ -10,8 +10,8 @@ import (
 	"time"
 
 	connectcors "connectrpc.com/cors"
-	"github.com/rneacsu5/spyglass/internal/grpc/proto/protoconnect"
-	"github.com/rneacsu5/spyglass/internal/logger"
+	"github.com/rneacsu/spyglass/internal/grpc/proto/protoconnect"
+	"github.com/rneacsu/spyglass/internal/logger"
 	"github.com/rs/cors"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"

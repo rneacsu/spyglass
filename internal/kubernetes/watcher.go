@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rneacsu5/spyglass/internal/logger"
+	"github.com/rneacsu/spyglass/internal/logger"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 )

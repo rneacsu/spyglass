@@ -7,7 +7,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/rneacsu5/spyglass/internal/logger"
+	"github.com/rneacsu/spyglass/internal/logger"
 	metainternalversionscheme "k8s.io/apimachinery/pkg/apis/meta/internalversion/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"

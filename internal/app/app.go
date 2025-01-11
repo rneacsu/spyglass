@@ -3,8 +3,8 @@ package app
 import (
 	"context"
 
-	"github.com/rneacsu5/spyglass/internal/grpc"
-	"github.com/rneacsu5/spyglass/internal/logger"
+	"github.com/rneacsu/spyglass/internal/grpc"
+	"github.com/rneacsu/spyglass/internal/logger"
 )
 
 var (

@@ -4,7 +4,7 @@ import (
 	"embed"
 	"log"
 
-	"github.com/rneacsu5/spyglass/internal/app"
+	"github.com/rneacsu/spyglass/internal/app"
 )
 
 //go:embed all:frontend/build

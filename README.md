@@ -5,10 +5,10 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/rneacsu5/spyglass?style=flat">
-  <img src="https://img.shields.io/github/stars/rneacsu5/spyglass?style=flat">
-  <img src="https://img.shields.io/github/contributors/rneacsu5/spyglass?style=flat">
-  <img src="https://img.shields.io/github/license/rneacsu5/spyglass?style=flat">
+  <img src="https://img.shields.io/github/v/release/rneacsu/spyglass?style=flat">
+  <img src="https://img.shields.io/github/stars/rneacsu/spyglass?style=flat">
+  <img src="https://img.shields.io/github/contributors/rneacsu/spyglass?style=flat">
+  <img src="https://img.shields.io/github/license/rneacsu/spyglass?style=flat">
 </p>
 
 <p align="center">
