@@ -71,8 +71,8 @@ func (s *GRPCServer) Start() error {
 	return nil
 }
 
-func (s *GRPCServer) Stop() {
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *GRPCServer) Stop(ctx context.Context) {
+	shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	if err := s.server.Shutdown(shutdownCtx); err != nil {

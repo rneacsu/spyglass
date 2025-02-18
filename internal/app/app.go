@@ -50,5 +50,5 @@ func (a *App) Startup(ctx context.Context) {
 
 func (a *App) Shutdown(ctx context.Context) {
 	logger.Info("Application shutting down")
-	a.grpcServer.Stop()
+	a.grpcServer.Stop(ctx)
 }
