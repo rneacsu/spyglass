@@ -17,19 +17,22 @@ jobs:
           - os: linux
             arch: amd64
             runner: ubuntu-24.04
+          - os: linux
+            arch: arm64
+            runner: ubuntu-24.04-arm
           - os:  darwin
             arch: universal
-            runner: macos-14
+            runner: macos-15
           - os:  windows
             arch: amd64
-            runner: windows-2022
+            runner: windows-2025
     runs-on: ${{ matrix.build.runner }}
     env:
       node_version: 22.x
-      pnpm_version: 9
-      go_version: 1.23
-      wails_version: v2.9.2
-      buf_version: 1.45.0
+      pnpm_version: 10
+      go_version: 1.24
+      wails_version: v2.10.1
+      buf_version: 1.54.0
       create_dmg_version: 7.0.0
       output_name: SpyGlass
       app_version: ${{ github.ref_name }}
@@ -126,7 +129,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: SpyGlass ${{ runner.os }}
+          name: SpyGlass ${{ runner.os }} ${{ runner.arch }}
           path: |
             build/bin/${{ env.package_name }}
 
