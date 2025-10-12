@@ -42,7 +42,7 @@ type baseWatcher struct {
 	watch      watch.Interface
 	watchLock  sync.Mutex
 	watchWG    sync.WaitGroup
-	logContext []interface{}
+	logContext []any
 
 	LastUsed time.Time
 }
@@ -52,7 +52,7 @@ func NewBaseWatcher(config WatcherConfig, watcherType WatcherType) *baseWatcher 
 	return &baseWatcher{
 		config:   config,
 		LastUsed: time.Now(),
-		logContext: []interface{}{
+		logContext: []any{
 			"context", config.KubeContext,
 			"resource", config.GVR,
 			"type", watcherType,

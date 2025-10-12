@@ -16,13 +16,13 @@ import (
 )
 
 func parseWailsConfig(wailsConfig []byte) (*AppInfo, error) {
-	var config map[string]interface{}
+	var config map[string]any
 
 	if err := json.Unmarshal(wailsConfig, &config); err != nil {
 		return nil, fmt.Errorf("Could not parse Wails json: %w", err)
 	}
 
-	var info = config["info"].(map[string]interface{})
+	var info = config["info"].(map[string]any)
 
 	return &AppInfo{
 		Version:   info["productVersion"].(string),
@@ -92,7 +92,7 @@ func Run(emb EmbeddedResources) error {
 		Logger:     logger.NewWailsLogger(logger.GlobalLogger()),
 		OnStartup:  app.Startup,
 		OnShutdown: app.Shutdown,
-		Bind: []interface{}{
+		Bind: []any{
 			&AppApi{
 				app: app,
 			},

@@ -118,9 +118,7 @@ func (tw *TableWatcher) GetTable(ctx context.Context) (*metav1.Table, error) {
 
 		tw.tableLock.Unlock()
 
-		tw.watchWG.Add(1)
-		go func() {
-			defer tw.watchWG.Done()
+		tw.watchWG.Go(func() {
 			logger.Infow("background watching started", tw.logContext...)
 
 			for event := range watcher.ResultChan() {
@@ -174,7 +172,7 @@ func (tw *TableWatcher) GetTable(ctx context.Context) (*metav1.Table, error) {
 			tw.watch = nil
 
 			logger.Infow("background watching finished", tw.logContext...)
-		}()
+		})
 	}
 
 	tw.tableLock.RLock()

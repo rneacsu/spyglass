@@ -9,4 +9,4 @@
 
 <AutoTheme />
 
-{@render children()}
+{@render children?.()}

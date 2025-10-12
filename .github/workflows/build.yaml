@@ -30,12 +30,13 @@ jobs:
     env:
       node_version: 22.x
       pnpm_version: 10
-      go_version: 1.24
-      wails_version: v2.10.1
-      buf_version: 1.54.0
-      create_dmg_version: 7.0.0
+      go_version: 1.25
+      wails_version: v2.10.2
+      buf_version: 1.58.0
+      create_dmg_version: 7.1.0
       output_name: SpyGlass
       app_version: ${{ github.ref_name }}
+      package_name: SpyGlass # will be overwritten
     permissions:
       contents: write
     steps:
@@ -115,14 +116,9 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           wails build -platform ${{ matrix.build.os }}/${{ matrix.build.arch }} -o ${{ env.output_name }}
-          npx create-dmg@${{ env.create_dmg_version }} "build/bin/${{ env.output_name }}.app" build/bin/ || true
+          npx create-dmg@${{ env.create_dmg_version }} --no-code-sign --no-version-in-filename "build/bin/${{ env.output_name }}.app" build/bin/
           rm -rf "build/bin/${{ env.output_name }}.app"
-          dmg_path="build/bin/${{ env.output_name }} ${{ env.app_version }}.dmg"
-          if ! [ -f "$dmg_path" ]; then
-            echo "Failed to create DMG"
-            exit 1
-          fi
-          mv "$dmg_path" "build/bin/${{ env.package_name }}"
+          mv "build/bin/${{ env.output_name }}.dmg" "build/bin/${{ env.package_name }}"
         shell: bash
 
       # Upload build assets

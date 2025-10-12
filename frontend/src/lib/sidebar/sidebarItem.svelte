@@ -21,7 +21,7 @@
   } = $props();
 
   let collapse: Collapse | null = null;
-  let collapseEl: HTMLDivElement;
+  let collapseEl: HTMLDivElement | null = $state(null);
 
   function onToggle() {
     if (!config.active) {

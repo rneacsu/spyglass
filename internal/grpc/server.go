@@ -58,15 +58,13 @@ func (s *GRPCServer) Start() error {
 		return fmt.Errorf("failed to configure http server: %w", err)
 	}
 
-	s.wgStopped.Add(1)
-	go func() {
-		defer s.wgStopped.Done()
+	s.wgStopped.Go(func() {
 		s.wgReady.Done()
 		logger.Infof("Starting gRPC server on %s", s.url)
 		if err := s.server.Serve(lis); !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatalf("Failed to start gRPC server: %v", err)
 		}
-	}()
+	})
 
 	return nil
 }

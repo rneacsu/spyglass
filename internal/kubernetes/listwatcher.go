@@ -77,9 +77,7 @@ func (lw *ListWatcher) List(ctx context.Context) ([]*unstructured.Unstructured, 
 		}
 		lw.objListLock.Unlock()
 
-		lw.watchWG.Add(1)
-		go func() {
-			defer lw.watchWG.Done()
+		lw.watchWG.Go(func() {
 			logger.Infow("background watching started", lw.logContext...)
 
 			for event := range watcher.ResultChan() {
@@ -108,7 +106,7 @@ func (lw *ListWatcher) List(ctx context.Context) ([]*unstructured.Unstructured, 
 			lw.watch = nil
 
 			logger.Infow("background watching finished", lw.logContext...)
-		}()
+		})
 	}
 
 	lw.objListLock.RLock()
