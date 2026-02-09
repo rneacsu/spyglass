@@ -1,22 +1,16 @@
-import type { ConfigColumns, Order } from "datatables.net-bs5";
-import { renderSelector, renderStatus } from "./render";
-
-type TableOverride = {
-  hiddenColumns?: string[],
-  columnOrder?: string[],
-  showName?: boolean,
-  showAge?: boolean,
-  render?: { [key: string]: ConfigColumns['render'] }
-  defaultOrder?: Order;
-}
+export type RenderType = "status" | "selector" | "timestamp";
 
 type TableConfig = {
   hiddenColumns: string[],
   columnOrder: string[],
   showName: boolean,
   showAge: boolean,
-  render: { [key: string]: ConfigColumns['render'] }
-  defaultOrder: Order;
+  render: { [key: string]: RenderType },
+  defaultOrder: { col: string, dir: "asc" | "desc" }[];
+}
+
+type TableOverride = {
+  [Prop in keyof TableConfig]?: TableConfig[Prop]
 }
 
 export function mergeOverrides(...overrides: TableOverride[]): TableConfig {
@@ -44,20 +38,20 @@ export function getConfig(group: string, version: string, resource: string): Tab
 }
 
 
-let overrides = {
+let overrides: { [key: string]: TableOverride } = {
   "*": {
     hiddenColumns: ["Name", "Namespace", "Age"],
     showAge: true,
     showName: true,
     defaultOrder: [
-      { name: "Name", dir: "asc" }
+      { col: "Name", dir: "asc" }
     ]
   },
   "/v1::pods": {
     hiddenColumns: ["Nominated Node", "Readiness Gates"],
     columnOrder: ["Status", "Ready"],
     render: {
-      "Status": renderStatus(),
+      "Status": "status",
     }
   },
   "/v1::nodes": {
@@ -72,7 +66,7 @@ let overrides = {
   "apps/v1::deployments": {
     hiddenColumns: ["Images", "Containers"],
     render: {
-      "Selector": renderSelector()
+      "Selector": "selector"
     }
   },
   "apps/v1::statefulsets": {
@@ -81,13 +75,13 @@ let overrides = {
   "apps/v1::daemonsets": {
     hiddenColumns: ["Node Selector", "Containers", "Images"],
     render: {
-      "Selector": renderSelector()
+      "Selector": "selector"
     }
   },
   "apps/v1::replicasets": {
     hiddenColumns: ["Images", "Containers"],
     render: {
-      "Selector": renderSelector()
+      "Selector": "selector"
     }
   }
-} as { [key: string]: TableOverride };
+};

@@ -1,80 +1,53 @@
 <script lang="ts" module>
-  export type SidebarItemConfig = {
+  export type SidebarItemConfig<T> = {
     text: string;
-    data: any | null;
+    data?: T;
     active: boolean;
-    items: SidebarItemConfig[];
+    items: SidebarItemConfig<T>[];
   };
 </script>
 
-<script lang="ts">
+<script lang="ts" generics="T">
   import { onMount } from "svelte";
-  import { Collapse } from "bootstrap";
+
   import Self from "./sidebarItem.svelte";
 
   let {
-    config = { text: "", data: null, active: false, items: [] },
+    config = { text: "", active: false, items: [] },
     select = () => {},
   }: {
-    config: SidebarItemConfig;
-    select: (event: any) => void;
+    config: SidebarItemConfig<T>;
+    select: (data?: T) => void;
   } = $props();
 
-  let collapse: Collapse | null = null;
-  let collapseEl: HTMLDivElement | null = $state(null);
-
-  function onToggle() {
-    if (!config.active) {
-      collapse?.toggle();
-    }
-  }
+  let isOpen: boolean = $state(false);
 
   onMount(() => {
-    if (collapseEl) {
-      collapse = new Collapse(collapseEl, { toggle: config.active });
-    }
+    isOpen = config.active;
   });
 </script>
 
-<li>
+<li class:items-start={config.items.length == 0} class="relative">
   {#if config.items.length > 0}
-    <button
-      class="btn btn-small text-start text-truncate w-100 d-inline-block rounded-end-0"
-      class:active={config.active}
-      type="button"
-      aria-expanded="false"
-      onclick={onToggle}
+    <a
+      class:menu-active={config.active}
+      class="menu-dropdown-toggle"
+      class:menu-dropdown-show={isOpen}
+      onclick={() => (isOpen = config.active || !isOpen)}
+      href={"#"}
     >
-      {config.text}
-    </button>
-    <div class="collapse ps-3" bind:this={collapseEl}>
-      <ul class="list-unstyled">
-        {#each config.items as subItem (subItem.text)}
-          <Self config={subItem} {select} />
-        {/each}
-      </ul>
-    </div>
+      <span class="truncate">{config.text}</span>
+    </a>
+    <ul class="menu-dropdown" class:menu-dropdown-show={isOpen}>
+      {#each config.items as subItem (subItem.text)}
+        <Self config={subItem} {select} />
+      {/each}
+    </ul>
   {:else}
-    <button
-      class="btn text-start text-truncate w-100 d-inline-block rounded-end-0"
-      class:active={config.active}
+    <a
+      class:menu-active={config.active}
       onclick={() => select(config.data)}
+      href={"#"}><span class="truncate">{config.text}</span></a
     >
-      {config.text}
-    </button>
   {/if}
 </li>
-
-<style lang="scss">
-  button {
-    border: none;
-
-    &:hover {
-      background-color: var(--bs-tertiary-bg);
-    }
-
-    &.active {
-      background-color: var(--bs-secondary-bg);
-    }
-  }
-</style>

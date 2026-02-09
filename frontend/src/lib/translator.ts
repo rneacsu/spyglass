@@ -33,6 +33,7 @@ const translations: { [lang: string]: { [key: string]: string } } = {
     "resource::rbac.authorization.k8s.io/v1::clusterroles": "Cluster Roles",
     "resource::rbac.authorization.k8s.io/v1::clusterrolebindings": "Cluster Role Bindings",
     "resource::/v1::serviceaccounts": "Service Accounts",
+    "resource::apiextensions.k8s.io/v1::customresourcedefinitions": "Custom Resource Definitions",
     "tableColumn::MinPods": "Min Pods",
     "tableColumn::MaxPods": "Max Pods",
     "tableCell::CrashLoopBackOff": "Crash Loop",

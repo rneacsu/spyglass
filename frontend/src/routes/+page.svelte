@@ -14,7 +14,7 @@
   });
 </script>
 
-<div class="h-100 d-flex flex-column">
+<div class="h-screen flex flex-col">
   <Navbar
     bind:context={selected.context}
     bind:namespace={selected.namespace}
@@ -22,7 +22,7 @@
   />
   <Alerts />
 
-  <div class="d-flex flex-row h-0 flex-grow-1">
+  <div class="flex flex-row h-0 grow">
     <Sidebar
       context={selected.context}
       bind:group={selected.group}
@@ -31,10 +31,14 @@
       bind:namespaced={selected.namespaced}
     />
 
-    <div
-      class="container-fluid py-2 flex-grow-1 w-0 position-relative overflow-y-hidden"
-    >
-      <div class="backlogo"></div>
+    <div class="py-2 w-0 grow relative">
+      <div
+        class="
+          absolute inset-1/2 -translate-1/2 -z-100
+          w-52 h-52 bg-base-300
+          mask-[url('$lib/assets/k8s.svg')] mask-contain mask-no-repeat mask-center
+        "
+      ></div>
       <Table
         context={selected.context}
         namespace={selected.namespace}
@@ -46,21 +50,3 @@
     </div>
   </div>
 </div>
-
-<style lang="scss">
-  .backlogo {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 200px;
-    height: 200px;
-    background: var(--bs-secondary-bg);
-    transform: translate(-50%, -50%);
-    z-index: -100;
-
-    mask-image: url("$lib/assets/k8s.svg");
-    mask-size: contain;
-    mask-repeat: no-repeat;
-    mask-position: center;
-  }
-</style>

@@ -1,13 +1,45 @@
+<script lang="ts" module>
+  type ResourceColumn = Column & {
+    render?: RenderType;
+  };
+
+  function getRelativeTime(dateMs: number): string {
+    const past = new Date(Number(dateMs));
+    const diff = Date.now() - past.getTime();
+    const future = diff < 0;
+
+    const seconds = Math.floor(Math.abs(diff) / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    const years = Math.floor(days / 365);
+
+    let result = "";
+
+    if (years > 0) {
+      result = `${years}y`;
+    } else if (days > 0) {
+      result = `${days}d`;
+    } else if (hours > 0) {
+      result = `${hours}h`;
+    } else if (minutes > 0) {
+      result = `${minutes}m`;
+    } else {
+      result = `${seconds}s`;
+    }
+
+    return future ? `in ${result}` : `${result} ago`;
+  }
+</script>
+
 <script lang="ts">
-  import { onDestroy, onMount, untrack } from "svelte";
-  import client from "../grpc/client";
-  import { ShowAlert } from "../alerts.svelte";
-  import { Refresher } from "../grpc/refresher";
-  import DataTable from "./dataTable.svelte";
-  import type { ConfigColumns } from "datatables.net-bs5";
-  import { getConfig } from "./config";
   import { translateTableColumn } from "$lib/translator";
-  import { renderDefault, renderRelativeTime } from "./render";
+  import { onDestroy, onMount, untrack } from "svelte";
+  import { ShowAlert } from "../alerts.svelte";
+  import client from "../grpc/client";
+  import { Refresher } from "../grpc/refresher";
+  import { getConfig, type RenderType } from "./config";
+  import DataTable, { type Column } from "./dataTable.svelte";
 
   let {
     context = "",
@@ -18,12 +50,13 @@
     namespaced = false,
   } = $props();
 
-  let table: DataTable | null = null;
   let tableRefresher: Refresher | null = null;
   let recreateTable: boolean = false;
-  let columnOrder: number[] = [];
-
+  let isLoading = $state(false);
+  let columns: ResourceColumn[] = $state([]);
+  let rows: Record<string, any>[] = $state([]);
   let shouldDisplay = $derived(context && version && resource);
+  let table: DataTable;
 
   $effect(() => {
     context !== null &&
@@ -36,9 +69,23 @@
       });
   });
 
+  function getStatusClass(status: string): string {
+    const statusMap = {
+      Completed: "badge-info",
+      Succeeded: "badge-info",
+      Running: "badge-success",
+      Pending: "badge-warning",
+      OOMKilled: "badge-error",
+      Failed: "badge-error",
+      CrashLoopBackOff: "badge-error",
+    } as { [key: string]: string };
+
+    return statusMap[status] || "badge-secondary";
+  }
+
   async function loadTable(signal: AbortSignal) {
     if (!shouldDisplay) {
-      table?.init({});
+      rows = [];
       return;
     }
 
@@ -55,46 +102,62 @@
 
     let tableConfig = getConfig(group, version, resource);
 
-    let columns: ConfigColumns[];
+    let columnOrder: number[] = [];
+
+    tableConfig.columnOrder.forEach((c) => {
+      let index = data.columns.findIndex((col) => col.name === c);
+      if (index !== -1) {
+        columnOrder.push(index);
+      }
+    });
+    data.columns.forEach((c, i) => {
+      if (!columnOrder.includes(i)) {
+        columnOrder.push(i);
+      }
+    });
 
     if (recreateTable) {
-      columns = [];
-      columnOrder = [];
-
-      tableConfig.columnOrder.forEach((c) => {
-        let index = data.columns.findIndex((col) => col.name === c);
-        if (index !== -1) {
-          columnOrder.push(index);
-        }
-      })
-      data.columns.forEach((c, i) => {
-        if (!columnOrder.includes(i)) {
-          columnOrder.push(i);
-        }
-      });
-
       columns = columnOrder.map((i) => {
         const c = data.columns[i];
         return {
-          title: c.name,
-          visible: !tableConfig.hiddenColumns.includes(c.name),
+          name: c.name,
+          sortable: true,
+          hidden: tableConfig.hiddenColumns.includes(c.name),
           render: tableConfig.render[c.name],
         };
       });
 
-      columns.unshift({ name: "Namespace", title: "Namespace", visible: namespaced && namespace === "__all__" });
-      columns.unshift({ name: "Name", title: "Name", visible: tableConfig.showName });
-      columns.unshift({ name: "Id", title: "Id", visible: false });
-      columns.push({ name: "Age", title: "Age", visible: tableConfig.showAge, render: renderRelativeTime() });
+      columns.unshift({
+        name: "Namespace",
+        sortable: true,
+        hidden: !namespaced || namespace !== "__all__",
+      });
+      columns.unshift({
+        name: "Name",
+        sortable: true,
+        hidden: !tableConfig.showName,
+      });
+      columns.unshift({
+        name: "Id",
+        sortable: true,
+        hidden: true,
+      });
+      columns.push({
+        name: "Age",
+        sortable: true,
+        hidden: !tableConfig.showAge,
+        render: "timestamp",
+      });
 
       columns.forEach((c) => {
-        // Translate columns
-        c.title = translateTableColumn(c.title ?? "");
+        c.title = translateTableColumn(c.title ?? c.name);
       });
+
+      table.setSort(tableConfig.defaultOrder);
+      recreateTable = false;
     }
 
-    const rowData = data.rows.map((r) => {
-
+    rows = data.rows.map<Record<string, any>>((r) => {
       // Reorder columns
       let row: any[] = columnOrder.map((i) => r.cells[i]);
 
@@ -103,34 +166,18 @@
       row.unshift(r.resource!.uid);
       row.push(r!.resource!.created!.seconds);
 
-      return row;
+      return Object.fromEntries(columns.map((col, i) => [col.name, row[i]]));
     });
-
-    if (recreateTable) {
-      table?.init({
-        columns: columns!,
-        data: rowData,
-        order: tableConfig.defaultOrder,
-        columnDefs: [
-          {
-            targets: "_all",
-            render: renderDefault(),
-          },
-        ],
-      });
-      recreateTable = false;
-    } else {
-      table?.replaceData(rowData);
-    }
   }
 
   function onParamsChange() {
     recreateTable = true;
-
     (async () => {
-      table?.processing(true);
+      isLoading = true;
+      table.setSort();
+      table.setFilter();
       await tableRefresher?.refresh();
-      table?.processing(false);
+      isLoading = false;
     })();
   }
 
@@ -141,9 +188,7 @@
         ShowAlert("error", e.message);
       },
     });
-    if (shouldDisplay) {
-      tableRefresher?.refresh();
-    }
+    onParamsChange();
   });
 
   onDestroy(() => {
@@ -151,22 +196,24 @@
   });
 </script>
 
-<div class="table-wrapper h-100">
-  <DataTable bind:this={table} />
-</div>
-
-<style lang="scss">
-  .table-wrapper {
-    padding-bottom: 0.75rem;
-    background: var(--bs-body-bg);
-
-    :global(table) {
-      :global(th),
-      :global(td) {
-        :global(span) {
-          max-width: 200px;
-        }
-      }
-    }
-  }
-</style>
+<DataTable bind:this={table} {isLoading} {columns} {rows} class="h-full">
+  {#snippet cell(data, col)}
+    {#if col.render === "timestamp"}
+      <span title={new Date(Number(data) * 100).toISOString()}>
+        {getRelativeTime(Number(data) * 1000)}
+      </span>
+    {:else if col.render === "selector"}
+      {#each (data as string).split(",") as label}
+        <span class="badge badge-soft badge-secondary me-1 mb-1">
+          {label}
+        </span>
+      {/each}
+    {:else if col.render === "status"}
+      <span class={["badge", "badge-soft", getStatusClass(String(data))]}>
+        {String(data)}
+      </span>
+    {:else}
+      {String(data)}
+    {/if}
+  {/snippet}
+</DataTable>

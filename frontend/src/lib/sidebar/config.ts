@@ -39,6 +39,10 @@ export let structure = {
     { group: "rbac.authorization.k8s.io", version: "v1", resource: "clusterroles" },
     { group: "rbac.authorization.k8s.io", version: "v1", resource: "clusterrolebindings" },
     { group: "", version: "v1", resource: "serviceaccounts" },
+  ],
+
+  "Other": [
+    { group: "apiextensions.k8s.io", version: "v1", resource: "customresourcedefinitions" },
   ]
 } as { [category: string]: { group: string, version: string, resource: string }[] };
 

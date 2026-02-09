@@ -1,10 +1,19 @@
+<script lang="ts" module>
+  export type GVRItemData = {
+    group: string;
+    version: string;
+    resource: string;
+    namespaced: boolean;
+  };
+</script>
+
 <script lang="ts">
   import { onDestroy, onMount, untrack } from "svelte";
   import SidebarItem, { type SidebarItemConfig } from "./sidebarItem.svelte";
   import client from "../grpc/client";
   import { ShowAlert } from "../alerts.svelte";
   import { Refresher } from "../grpc/refresher";
-  import { translateResource } from "../translator";
+  import { translate, translateResource } from "../translator";
   import { structure, hidden } from "./config";
 
   let {
@@ -15,16 +24,16 @@
     namespaced = $bindable(false),
   } = $props();
 
-  let items: SidebarItemConfig[] = $state([]);
+  let items: SidebarItemConfig<GVRItemData>[] = $state([]);
   let isLoadingSidebar: boolean = $state(false);
 
   let sidebarRefresher: Refresher | null = null;
 
   $effect(() => {
-    context !== null &&
-      untrack(() => {
-        onParamsChange();
-      });
+    context;
+    untrack(() => {
+      onParamsChange();
+    });
   });
 
   function gvToKey(group: string, version: string) {
@@ -40,15 +49,11 @@
     return { group, version };
   }
 
-  function isActive(
-    itemGroup: string,
-    itemVersion: string,
-    itemResource: string,
-  ) {
+  function isActive(data: GVRItemData) {
     return (
-      itemGroup === group &&
-      itemVersion === version &&
-      itemResource === resource
+      data.group === group &&
+      data.version === version &&
+      data.resource === resource
     );
   }
 
@@ -84,7 +89,7 @@
     }
 
     for (const [category, categoryItems] of Object.entries(structure)) {
-      const subItems: SidebarItemConfig[] = [];
+      const subItems: SidebarItemConfig<GVRItemData>[] = [];
       for (const categoryItem of categoryItems) {
         const gvKey = gvToKey(categoryItem.group, categoryItem.version);
         const gvrKey = gvrToKey(
@@ -92,20 +97,20 @@
           categoryItem.version,
           categoryItem.resource,
         );
-        const apiItems = apisFlattened.get(gvrKey);
+        const apiItem = apisFlattened.get(gvrKey);
 
-        if (apiItems) {
-          const data = {
+        if (apiItem) {
+          const data: GVRItemData = {
             group: categoryItem.group,
             version: categoryItem.version,
             resource: categoryItem.resource,
-            namespaced: apiItems.namespaced,
+            namespaced: apiItem.namespaced,
           };
           subItems.push({
             text: translateResource(gvrKey),
-            data,
             items: [],
-            active: isActive(data.group, data.version, data.resource),
+            data,
+            active: isActive(data),
           });
           apisGrouped.get(gvKey)?.delete(categoryItem.resource);
           apisFlattened.delete(gvrKey);
@@ -114,8 +119,7 @@
 
       if (subItems.length > 0) {
         items.push({
-          text: category,
-          data: "",
+          text: translate(category),
           items: subItems,
           active: subItems.some((item) => item.active),
         });
@@ -134,17 +138,17 @@
       apisFlattened.delete(gvrKey);
     }
 
-    const otherItems: SidebarItemConfig[] = [];
+    const remainingItems: SidebarItemConfig<GVRItemData>[] = [];
 
     for (const [gv, resources] of apisGrouped.entries()) {
       if (resources.size === 0) {
         continue;
       }
 
-      const subItems: SidebarItemConfig[] = [];
+      const subItems: SidebarItemConfig<GVRItemData>[] = [];
 
       for (const [resource, { namespaced }] of resources.entries()) {
-        const data = {
+        const data: GVRItemData = {
           group: keyToGv(gv).group,
           version: keyToGv(gv).version,
           resource: resource,
@@ -154,25 +158,21 @@
           text: resource,
           data,
           items: [],
-          active: isActive(data.group, data.version, data.resource),
+          active: isActive(data),
         });
       }
 
-      otherItems.push({
+      remainingItems.push({
         text: gv,
-        data: "",
         items: subItems,
         active: subItems.some((item) => item.active),
       });
     }
 
-    if (otherItems.length > 0) {
-      items.push({
-        text: "Other",
-        data: "",
-        items: otherItems,
-        active: otherItems.some((item) => item.active),
-      });
+    if (items.length === 0) {
+      items = remainingItems;
+    } else {
+      items[items.length - 1].items.push(...remainingItems);
     }
 
     if (items.every((item) => !item.active)) {
@@ -192,20 +192,19 @@
     })();
   }
 
-  function updateActiveItem(item: SidebarItemConfig) {
+  function updateActiveItem(item: SidebarItemConfig<GVRItemData>) {
     if (item.items.length > 0) {
       item.items.forEach(updateActiveItem);
       item.active = item.items.some((subItem) => subItem.active);
     } else if (item.data) {
-      item.active = isActive(
-        item.data.group,
-        item.data.version,
-        item.data.resource,
-      );
+      item.active = isActive(item.data);
     }
   }
 
-  function onSelect(data: any) {
+  function onSelect(data?: GVRItemData) {
+    if (!data) {
+      return;
+    }
     ({ group, version, resource, namespaced } = data);
     items.forEach(updateActiveItem);
   }
@@ -217,9 +216,7 @@
         ShowAlert("error", e.message);
       },
     });
-    if (context) {
-      onParamsChange();
-    }
+    onParamsChange();
   });
 
   onDestroy(() => {
@@ -227,23 +224,14 @@
   });
 </script>
 
-<ul
-  class="sidebar list-unstyled mb-0 ps-3 py-3 overflow-y-auto border-end border-dark-subtle"
->
+<ul class="menu overflow-y-auto border-e border-base-300 flex-nowrap w-72">
   {#if isLoadingSidebar}
-    <li>Loading...</li>
+    <li class="menu-disabled"><span>Loading...</span></li>
   {:else if items.length === 0}
-    <li>No resources found</li>
+    <li class="menu-disabled"><span>No resources found</span></li>
   {:else}
     {#each items.values() as item (item.text)}
       <SidebarItem config={item} select={onSelect} />
     {/each}
   {/if}
 </ul>
-
-<style lang="scss">
-  .sidebar {
-    min-width: 200px;
-    max-width: 400px;
-  }
-</style>

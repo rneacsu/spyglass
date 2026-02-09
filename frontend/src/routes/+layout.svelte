@@ -1,12 +1,11 @@
 <script lang="ts">
-  import AutoTheme from "$lib/autotheme/autoTheme.svelte";
-
   let { children } = $props();
 
-  import "../app.scss";
-  import "bootstrap";
+  import "../app.css";
 </script>
 
-<AutoTheme />
+<svelte:head>
+    <title>SpyGlass</title>
+</svelte:head>
 
 {@render children?.()}

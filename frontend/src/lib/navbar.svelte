@@ -5,7 +5,6 @@
   import { onDestroy, onMount, untrack } from "svelte";
   import { ShowAlert } from "./alerts.svelte";
   import { Refresher } from "./grpc/refresher";
-  import { autoTheme } from "./autotheme/autoTheme.svelte";
 
   let {
     title = "SpyGlass",
@@ -99,59 +98,36 @@
   });
 </script>
 
-<div>
-  <nav class="navbar navbar-expand bg-primary" data-bs-theme="dark">
-    <div class="container-fluid">
-      <a
-        class="navbar-brand"
+<div class="navbar bg-base-100 shadow-sm">
+  <div class="flex-1">
+    <a
+        class="btn btn-ghost text-xl"
         href={"#"}
         onclick={() => {
           ShowAlert("info", "This is a test alert");
-        }}>{title}</a
-      >
-      <button
-        class="navbar-toggler"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#navbarSupportedContent"
-        aria-controls="navbarSupportedContent"
-        aria-expanded="false"
-        aria-label="Toggle navigation"
-      >
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div
-        class="collapse navbar-collapse"
-        id="navbarSupportedContent"
-        data-bs-theme={autoTheme.theme}
-      >
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0"></ul>
-        <div class="d-flex">
-          {#if namespaced}
-            <div class="me-3">
-              <Dropdown
-                alignEnd={true}
-                isLoading={namespaceLoading}
-                items={namespaceItems}
-                bind:selectedItem={namespace}
-                noItemsMessage="No namespaces"
-                loadingMessage="Loading namespaces..."
-                noSelectionMessage="Select namespace..."
-              />
-            </div>
-          {/if}
-          <Dropdown
-            alignEnd={true}
-            items={contextItems}
-            bind:selectedItem={context}
-            noItemsMessage="No contexts"
-            loadingMessage="Loading contexts..."
-            noSelectionMessage="Select context..."
-          />
-        </div>
-      </div>
-    </div>
-  </nav>
+        }}>{title}</a>
+  </div>
+  <div class="flex gap-2">
+    {#if namespaced}
+      <Dropdown
+        class="dropdown-end"
+        isLoading={namespaceLoading}
+        items={namespaceItems}
+        bind:selectedItem={namespace}
+        noItemsMessage="No namespaces"
+        loadingMessage="Loading namespaces..."
+        noSelectionMessage="Select namespace..."
+      />
+    {/if}
+    <Dropdown
+      class="dropdown-end"
+      items={contextItems}
+      bind:selectedItem={context}
+      noItemsMessage="No contexts"
+      loadingMessage="Loading contexts..."
+      noSelectionMessage="Select context..."
+    />
+  </div>
 </div>
 
 <style>
