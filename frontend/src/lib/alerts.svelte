@@ -17,18 +17,15 @@
 
     getAlertClass(): string {
       switch (this.type) {
-        case "default":
-          return "primary";
         case "success":
-          return "success";
+          return "alert-success";
+        case "default":
         case "info":
-          return "info";
+          return "alert-info";
         case "warning":
-          return "warning";
+          return "alert-warning";
         case "error":
-          return "danger";
-        default:
-          return "secondary";
+          return "alert-error";
       }
     }
   }
@@ -63,55 +60,28 @@
 </script>
 
 <script lang="ts">
+  import { X } from "@lucide/svelte";
   import { fade } from "svelte/transition";
 </script>
 
-<div class="alertsContainer d-flex p-3 flex-column-reverse align-items-end">
+<div class="toast flex-col-reverse z-10 mask-t-from-60">
   {#each alerts as alert (alert.id)}
     <div
-      class="alert alert-{alert.getAlertClass()} alert-dismissible mb-0 mt-3"
+      class="alert {alert.getAlertClass()} max-w-160 max-h-86"
       role="alert"
       transition:fade
     >
-      <div class="alertMessage">
+      <span class="text-ellipsis line-clamp-4">
         {alert.message}
-      </div>
+      </span>
       <button
-        type="button"
-        class="btn-close"
-        aria-label="Close"
+        class="btn btn-square btn-ghost btn-sm"
         onclick={() => {
           removeAlert(alert.id);
         }}
-      ></button>
+      >
+        <X />
+      </button>
     </div>
   {/each}
 </div>
-
-<style lang="scss">
-  $maxHeight: 350px;
-  $fadeLength: 100px;
-
-  .alertsContainer {
-    position: fixed;
-    bottom: 0;
-    right: 0;
-    z-index: 1000;
-    mask-image: linear-gradient(
-      to top,
-      rgba(0, 0, 0, 1) ($maxHeight - $fadeLength),
-      rgba(0, 0, 0, 0) $maxHeight
-    );
-    max-height: $maxHeight;
-    overflow-y: hidden;
-  }
-  .alertMessage {
-    display: -webkit-inline-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 4;
-    max-width: 650px;
-    line-clamp: 4;
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
-</style>

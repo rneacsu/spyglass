@@ -1,9 +1,9 @@
 <script lang="ts">
-  import client from "./grpc/client";
   import { ConnectError } from "@connectrpc/connect";
-  import Dropdown, { type Item } from "./dropdown.svelte";
   import { onDestroy, onMount, untrack } from "svelte";
   import { ShowAlert } from "./alerts.svelte";
+  import Dropdown, { type Item } from "./dropdown.svelte";
+  import client from "./grpc/client";
   import { Refresher } from "./grpc/refresher";
 
   let {
@@ -101,11 +101,14 @@
 <div class="navbar bg-base-100 shadow-sm">
   <div class="flex-1">
     <a
-        class="btn btn-ghost text-xl"
-        href={"#"}
-        onclick={() => {
-          ShowAlert("info", "This is a test alert");
-        }}>{title}</a>
+      class="btn btn-ghost text-xl"
+      href={"#"}
+      onclick={() => {
+        ShowAlert("info", "This is a test alert");
+      }}
+    >
+      {title}
+    </a>
   </div>
   <div class="flex gap-2">
     {#if namespaced}
