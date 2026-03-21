@@ -1,4 +1,4 @@
-//go:build prod
+//go:build !dev
 
 package main
 
@@ -10,8 +10,10 @@ import (
 	"github.com/rneacsu/spyglass/internal/webviewgo"
 )
 
-//go:embed frontend/build
+//go:embed all:frontend/build
 var assets embed.FS
 
-var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
-var frontend = webviewgo.NewEmbeddedFrontend(logger, &assets, "frontend/build")
+func init() {
+	logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	frontend = webviewgo.NewEmbeddedFrontend(logger, &assets, "frontend/build")
+}

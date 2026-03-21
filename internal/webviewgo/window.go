@@ -39,6 +39,10 @@ type Window struct {
 }
 
 func newWindow(app *Application, id string, path string) *Window {
+	if path[0] != '/' {
+		path = "/" + path
+	}
+
 	w := &Window{
 		app:             app,
 		id:              id,
@@ -213,6 +217,6 @@ func (w *Window) onScriptMessage(msg string) {
 }
 
 func (w *Window) Open() {
-	url := fmt.Sprintf("%s/%s", w.app.frontend.GetUrl(), w.path)
+	url := fmt.Sprintf("%s%s", w.app.frontend.GetUrl(), w.path)
 	w.open(url)
 }

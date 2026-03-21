@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -36,6 +37,10 @@ type EmbeddedFrontend struct {
 }
 
 func NewEmbeddedFrontend(logger *slog.Logger, assets *embed.FS, prefix string) *EmbeddedFrontend {
+	if prefix[0] != '/' {
+		prefix = "/" + prefix
+	}
+
 	f := &EmbeddedFrontend{
 		BaseFrontend: &BaseFrontend{
 			logger: logger,
@@ -57,10 +62,6 @@ func (f *EmbeddedFrontend) Start() error {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
 		return fmt.Errorf("could not open port for listening: %w", err)
-	}
-
-	if f.prefix[0] != '/' {
-		f.prefix = "/" + f.prefix
 	}
 
 	port := listener.Addr().(*net.TCPAddr).Port
@@ -85,4 +86,30 @@ func (f *EmbeddedFrontend) Stop() error {
 	err := f.server.Shutdown(timeoutCtx)
 	f.wg.Wait()
 	return err
+}
+
+type ExternalUrlFrontend struct {
+	*BaseFrontend
+}
+
+func NewExternalUrlFrontend(logger *slog.Logger, url string) *ExternalUrlFrontend {
+	f := &ExternalUrlFrontend{
+		BaseFrontend: &BaseFrontend{
+			logger: logger,
+			url:    strings.TrimSuffix(url, "/"),
+		},
+	}
+	return f
+}
+
+func (f *ExternalUrlFrontend) Start() error {
+	return nil
+}
+
+func (f *ExternalUrlFrontend) Stop() error {
+	return nil
+}
+
+func (f *ExternalUrlFrontend) GetUrl() string {
+	return f.url
 }
