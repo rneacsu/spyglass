@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"sync"
@@ -11,13 +12,13 @@ import (
 
 	connectcors "connectrpc.com/cors"
 	"github.com/rneacsu/spyglass/internal/grpc/proto/protoconnect"
-	"github.com/rneacsu/spyglass/internal/logger"
 	"github.com/rs/cors"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
 
 type GRPCServer struct {
+	logger    *slog.Logger
 	url       string
 	server    *http.Server
 	handler   *kubeHandler
@@ -25,9 +26,10 @@ type GRPCServer struct {
 	wgStopped sync.WaitGroup
 }
 
-func NewGRPCServer() *GRPCServer {
+func NewGRPCServer(logger *slog.Logger) *GRPCServer {
 	server := &GRPCServer{
-		handler: NewKubeHandler(),
+		logger:  logger.With("component", "grpc_server"),
+		handler: NewKubeHandler(logger),
 	}
 	server.wgReady.Add(1)
 	return server
@@ -60,21 +62,21 @@ func (s *GRPCServer) Start() error {
 
 	s.wgStopped.Go(func() {
 		s.wgReady.Done()
-		logger.Infof("Starting gRPC server on %s", s.url)
+		s.logger.Info("starting gRPC server", "url", s.url)
 		if err := s.server.Serve(lis); !errors.Is(err, http.ErrServerClosed) {
-			logger.Fatalf("Failed to start gRPC server: %v", err)
+			panic(fmt.Errorf("failed to start gRPC server: %w", err))
 		}
 	})
 
 	return nil
 }
 
-func (s *GRPCServer) Stop(ctx context.Context) {
-	shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+func (s *GRPCServer) Stop() {
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := s.server.Shutdown(shutdownCtx); err != nil {
-		logger.Fatalf("Failed to shutdown gRPC server: %v", err)
+		s.logger.Error("failed to shutdown gRPC server", "error", err)
 	}
 	s.wgStopped.Wait()
 	s.handler.Stop()

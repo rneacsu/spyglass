@@ -1,8 +1,12 @@
-import { createConnectTransport } from "@connectrpc/connect-web";
-import { GetGRPCUrl } from "$lib/wailsjs/go/app/AppApi";
-import { LogInfo } from "$lib/wailsjs/runtime/runtime";
 import { createClient, type Client } from "@connectrpc/connect";
+import { createConnectTransport } from "@connectrpc/connect-web";
 import { Kube } from "./proto/kube_pb";
+
+declare global {
+  interface Window {
+    GetGRPCUrl: () => Promise<string>;
+  }
+}
 
 class GRPCClientWrapper {
   client: Client<typeof Kube>;
@@ -17,8 +21,7 @@ let wrapper: GRPCClientWrapper | null = null;
 
 export default (async () => {
   if (!wrapper) {
-    const url = await GetGRPCUrl();
-    LogInfo("Creating GRPC client with url " + url);
+    const url = await window.GetGRPCUrl();
     wrapper = new GRPCClientWrapper(url);
   }
   return wrapper.client;

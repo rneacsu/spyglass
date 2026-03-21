@@ -1,0 +1,147 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+vars:
+  APP_NAME: spyglass
+  BUILD_DIR: build
+  BIN_DIR: "{{.BUILD_DIR}}/bin"
+  LIBS_DIR: libs
+  # WEBVIEW_VERSION: 0.12.0
+  WEBVIEW2_VERSION: 1.0.3800.47
+
+tasks:
+  # fetch-webview:
+  #   internal: true
+  #   generates:
+  #     - "{{.LIBS_DIR}}/webview-{{.WEBVIEW_VERSION}}.zip"
+  #   status:
+  #     - test -f "{{.LIBS_DIR}}/webview-{{.WEBVIEW_VERSION}}.zip"
+  #   cmds:
+  #     - curl -L -o {{.LIBS_DIR}}/webview-{{.WEBVIEW_VERSION}}.zip https://github.com/webview/webview/archive/refs/tags/{{.WEBVIEW_VERSION}}.zip
+  #     - unzip -o {{.LIBS_DIR}}/webview-{{.WEBVIEW_VERSION}}.zip -d {{.LIBS_DIR}}/
+  #     - mv {{.LIBS_DIR}}/webview-{{.WEBVIEW_VERSION}} {{.LIBS_DIR}}/webview
+
+  fetch-webview2:
+    internal: true
+    generates:
+      - "{{.LIBS_DIR}}/webview2-{{.WEBVIEW2_VERSION}}.nupkg"
+    status:
+      - test -f "{{.LIBS_DIR}}/webview2-{{.WEBVIEW2_VERSION}}.nupkg"
+    cmds:
+      - curl -L -o {{.LIBS_DIR}}/webview2-{{.WEBVIEW2_VERSION}}.nupkg https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/{{.WEBVIEW2_VERSION}}
+      - unzip -o {{.LIBS_DIR}}/webview2-{{.WEBVIEW2_VERSION}}.nupkg -d {{.LIBS_DIR}}/webview2
+
+  build-assets:
+    dir: frontend
+    cmds:
+      - npm run build
+
+  dockcross-go:
+    internal: true
+    requires:
+      vars:
+        - DOCKCROSS_NAME
+        - DOCKCROSS_PATH
+    vars:
+      OCI_BIN:
+        sh: command -v podman &>/dev/null && echo "podman" || echo "docker"
+    sources:
+      - Dockerfile.cross
+    generates:
+      - "{{.DOCKCROSS_PATH}}"
+    cmds:
+      - "{{.OCI_BIN}} build -t {{.DOCKCROSS_PATH}} -f Dockerfile.cross --target {{.DOCKCROSS_NAME}} ."
+      - "{{.OCI_BIN}} run {{.DOCKCROSS_PATH}} > {{.DOCKCROSS_PATH}}"
+      - chmod +x {{.DOCKCROSS_PATH}}
+
+  go-mod-tidy:
+    internal: true
+    cmds:
+      - go mod tidy
+
+  build:
+    internal: true
+    requires:
+      vars:
+        - TARGET_OS
+        - TARGET_ARCH
+        - BIN_PATH
+    vars:
+      CROSS_COMPILE: '{{ if and (eq .TARGET_OS OS) (eq .TARGET_ARCH ARCH) }}false{{ else }}true{{ end }}'
+      DOCKCROSS_NAME: dockcross-go-{{.TARGET_OS}}-{{.TARGET_ARCH}}
+      DOCKCROSS_PATH: "{{.BUILD_DIR}}/{{.DOCKCROSS_NAME}}"
+      BUILD_FLAGS: '-ldflags "-s -w" -tags prod'
+    sources:
+      - '**/*.go'
+      - 'frontend/build'
+    deps:
+      # - fetch-webview
+      - go-mod-tidy
+      # - build-assets
+    generates:
+      - "{{.BIN_PATH}}"
+    env:
+      CGO_ENABLED: 1
+      GOOS: "{{.TARGET_OS}}"
+      GOARCH: "{{.TARGET_ARCH}}"
+    cmds:
+      - task: fetch-webview2
+        if: '{{eq .TARGET_OS "windows"}}'
+      - task: dockcross-go
+        vars:
+          DOCKCROSS_NAME: "{{.DOCKCROSS_NAME}}"
+          DOCKCROSS_PATH: "{{.DOCKCROSS_PATH}}"
+        if: '{{.CROSS_COMPILE}}'
+      - if: '! {{.CROSS_COMPILE}}'
+        cmd: go build -o {{.BIN_PATH}} {{.BUILD_FLAGS}} .
+      - if: '{{.CROSS_COMPILE}}'
+        cmd: "{{.DOCKCROSS_PATH}} bash -c 'CGO_ENABLED=1 GOOS={{.TARGET_OS}} GOARCH={{.TARGET_ARCH}} go build -o {{.BIN_PATH}} {{.BUILD_FLAGS}} .'"
+
+  dev:
+    vars:
+      BUILD_FLAGS: '-tags dev'
+    deps:
+      # - fetch-webview
+      - go-mod-tidy
+    env:
+      CGO_ENABLED: 1
+    cmds:
+      - task: fetch-webview2
+        if: '{{eq OS "windows"}}'
+      - cmd: go run {{.BUILD_FLAGS}} .
+
+  run:
+    requires:
+      vars:
+        - name: TARGET_OS
+          enum: [linux, windows, darwin]
+        - name: TARGET_ARCH
+          enum: [amd64, arm64]
+    vars:
+      BIN_PATH: '{{.BIN_DIR}}/{{.APP_NAME}}{{ if eq .TARGET_OS "windows" }}.exe{{ else }}{{ end }}'
+    deps:
+      - task: build
+        vars:
+          TARGET_OS: "{{.TARGET_OS}}"
+          TARGET_ARCH: "{{.TARGET_ARCH}}"
+          BIN_PATH: "{{.BIN_PATH}}"
+    cmds:
+      - "{{.BIN_PATH}}"
+
+  run-linux-amd64:
+    cmds:
+      - task: run
+        vars:
+          TARGET_OS: linux
+          TARGET_ARCH: amd64
+  run-windows-amd64:
+    cmds:
+      - task: run
+        vars:
+          TARGET_OS: windows
+          TARGET_ARCH: amd64
+  clean:
+    cmds:
+      - rm -rf {{.BUILD_DIR}}
+      - rm -rf {{.LIBS_DIR}}

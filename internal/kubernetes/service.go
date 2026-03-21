@@ -2,9 +2,9 @@ package kubernetes
 
 import (
 	"context"
+	"log/slog"
 	"sort"
 
-	"github.com/rneacsu/spyglass/internal/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -19,19 +19,21 @@ const (
 )
 
 type KubeService struct {
+	logger      *slog.Logger
 	kubeConfig  *api.Config
 	connections map[string]*KubeConnection
 }
 
-func NewKubeService() *KubeService {
+func NewKubeService(logger *slog.Logger) *KubeService {
 	loader := clientcmd.NewDefaultClientConfigLoadingRules()
 
 	kubeConfig, err := loader.Load()
 	if err != nil {
-		logger.Warnw("some errors encountered while loading default kubeconfig", "error", err)
+		logger.Warn("some errors encountered while loading default kubeconfig", "error", err)
 	}
 
 	return &KubeService{
+		logger:      logger.With("component", "kube_service"),
 		kubeConfig:  kubeConfig,
 		connections: make(map[string]*KubeConnection),
 	}
@@ -78,7 +80,7 @@ func (ks *KubeService) getConnection(kubeContext string) (*KubeConnection, error
 		delete(ks.connections, oldestKey)
 	}
 
-	connection, err := NewKubeConnection(ks.kubeConfig, kubeContext)
+	connection, err := NewKubeConnection(ks.logger, ks.kubeConfig, kubeContext)
 
 	if err != nil {
 		return nil, err

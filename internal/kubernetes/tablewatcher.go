@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"sort"
 	"sync"
 
-	"github.com/rneacsu/spyglass/internal/logger"
 	metainternalversionscheme "k8s.io/apimachinery/pkg/apis/meta/internalversion/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -23,7 +23,7 @@ type TableWatcher struct {
 	table     metav1.Table
 }
 
-func NewTableWatcher(clientConfig *rest.Config, config WatcherConfig) (*TableWatcher, error) {
+func NewTableWatcher(logger *slog.Logger, clientConfig *rest.Config, config WatcherConfig) (*TableWatcher, error) {
 	restConfig := rest.CopyConfig(clientConfig)
 	restConfig.AcceptContentTypes = "application/json;as=Table;v=v1;g=meta.k8s.io,application/json"
 	restConfig.ContentType = "application/json"
@@ -49,7 +49,7 @@ func NewTableWatcher(clientConfig *rest.Config, config WatcherConfig) (*TableWat
 	}
 
 	return &TableWatcher{
-		baseWatcher: NewBaseWatcher(config, WatcherTypeTable),
+		baseWatcher: NewBaseWatcher(logger.With("component", "kube_table_watcher"), config, WatcherTypeTable),
 		client:      restClient,
 	}, nil
 }
@@ -80,7 +80,7 @@ func (tw *TableWatcher) GetTable(ctx context.Context) (*metav1.Table, error) {
 		}
 		listRequest = listRequest.Resource(tw.config.GVR.Resource).SpecificallyVersionedParams(&listOpt, metav1.ParameterCodec, metav1.Unversioned)
 
-		logger.Info(listRequest.URL().String())
+		tw.logger.Info(listRequest.URL().String())
 
 		listResult := metav1.Table{}
 		err := listRequest.Do(ctx).Into(&listResult)
@@ -119,7 +119,7 @@ func (tw *TableWatcher) GetTable(ctx context.Context) (*metav1.Table, error) {
 		tw.tableLock.Unlock()
 
 		tw.watchWG.Go(func() {
-			logger.Infow("background watching started", tw.logContext...)
+			tw.logger.Info("background watching started")
 
 			for event := range watcher.ResultChan() {
 				tw.tableLock.Lock()
@@ -128,7 +128,7 @@ func (tw *TableWatcher) GetTable(ctx context.Context) (*metav1.Table, error) {
 				case watch.Added, watch.Modified, watch.Deleted:
 					table := event.Object.(*metav1.Table)
 					if err = decodeTableRows(table); err != nil {
-						logger.Errorw(fmt.Sprintf("failed to decode table rows: %v", err), tw.logContext...)
+						tw.logger.Error("failed to decode table rows", "error", err)
 						tw.tableLock.Unlock()
 						continue
 					}
@@ -155,13 +155,11 @@ func (tw *TableWatcher) GetTable(ctx context.Context) (*metav1.Table, error) {
 					}
 
 				case watch.Error:
-					var logMsg string
 					if status, ok := event.Object.(*metav1.Status); ok {
-						logMsg = fmt.Sprintf("watch event error: %s, reason: %s", status.Message, status.Reason)
+						tw.logger.Error("watch event error", "error", status.Message, "reason", status.Reason)
 					} else {
-						logMsg = fmt.Sprintf("watch event error: %v", event.Object)
+						tw.logger.Error("watch event error", "error", event.Object)
 					}
-					logger.Errorw(logMsg, tw.logContext...)
 				}
 
 				tw.tableLock.Unlock()
@@ -171,7 +169,7 @@ func (tw *TableWatcher) GetTable(ctx context.Context) (*metav1.Table, error) {
 			defer tw.watchLock.Unlock()
 			tw.watch = nil
 
-			logger.Infow("background watching finished", tw.logContext...)
+			tw.logger.Info("background watching finished")
 		})
 	}
 

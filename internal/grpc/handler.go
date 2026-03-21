@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -16,12 +17,14 @@ import (
 )
 
 type kubeHandler struct {
-	ks *kubernetes.KubeService
+	logger *slog.Logger
+	ks     *kubernetes.KubeService
 }
 
-func NewKubeHandler() *kubeHandler {
+func NewKubeHandler(logger *slog.Logger) *kubeHandler {
 	return &kubeHandler{
-		ks: kubernetes.NewKubeService(),
+		logger: logger.With("component", "kube_handler"),
+		ks:     kubernetes.NewKubeService(logger),
 	}
 }
 

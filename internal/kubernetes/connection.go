@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"path"
 	"regexp"
@@ -25,6 +26,7 @@ const (
 )
 
 type KubeConnection struct {
+	logger       *slog.Logger
 	kubeContext  string
 	clientConfig *rest.Config
 	watchers     map[string]Watcher
@@ -33,7 +35,7 @@ type KubeConnection struct {
 	LastUsed time.Time
 }
 
-func NewKubeConnection(kubeConfig *api.Config, kubeContext string) (*KubeConnection, error) {
+func NewKubeConnection(logger *slog.Logger, kubeConfig *api.Config, kubeContext string) (*KubeConnection, error) {
 	clientConfig, err := clientcmd.NewDefaultClientConfig(*kubeConfig, &clientcmd.ConfigOverrides{
 		CurrentContext: kubeContext,
 	}).ClientConfig()
@@ -58,6 +60,7 @@ func NewKubeConnection(kubeConfig *api.Config, kubeContext string) (*KubeConnect
 	}
 
 	return &KubeConnection{
+		logger:       logger.With("component", "kube_connection", "context", kubeContext),
 		kubeContext:  kubeContext,
 		clientConfig: clientConfig,
 		watchers:     make(map[string]Watcher),
@@ -114,9 +117,9 @@ func (kc *KubeConnection) GetWatcher(gvr schema.GroupVersionResource, namespace 
 
 	switch watcherType {
 	case WatcherTypeList:
-		watcher, err = NewListWatcher(kc.clientConfig, watcherConfig)
+		watcher, err = NewListWatcher(kc.logger, kc.clientConfig, watcherConfig)
 	case WatcherTypeTable:
-		watcher, err = NewTableWatcher(kc.clientConfig, watcherConfig)
+		watcher, err = NewTableWatcher(kc.logger, kc.clientConfig, watcherConfig)
 	default:
 		err = fmt.Errorf("unsupported watcher type: %s", watcherType)
 	}

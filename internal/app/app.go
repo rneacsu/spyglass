@@ -1,54 +1,75 @@
 package app
 
 import (
-	"context"
+	"fmt"
+	"log/slog"
+	"os"
+	"os/exec"
+	"runtime"
 
 	"github.com/rneacsu/spyglass/internal/grpc"
-	"github.com/rneacsu/spyglass/internal/logger"
 )
 
 var (
-	AppEnv = "prod"
+	AppName    = "SpyGlass"
+	AppVersion = "0.0.0"
 )
-
-func IsDev() bool {
-	return AppEnv == "dev"
-}
 
 // App struct
 type App struct {
-	ctx        context.Context
+	logger     *slog.Logger
 	grpcServer *grpc.GRPCServer
-	info       *AppInfo
-}
-
-type AppInfo struct {
-	Version   string
-	Name      string
-	Copyright string
 }
 
 // NewApp creates a new App application struct
-func NewApp() *App {
+func NewApp(logger *slog.Logger) *App {
 	return &App{
-		grpcServer: grpc.NewGRPCServer(),
+		logger:     logger.With("component", "app"),
+		grpcServer: grpc.NewGRPCServer(logger),
 	}
+}
+
+func (a *App) useInteractiveShellPath() error {
+	if runtime.GOOS != "darwin" {
+		return nil
+	}
+
+	shell, exists := os.LookupEnv("SHELL")
+	if !exists {
+		shell = "/bin/zsh"
+		a.logger.Warn("could not find SHELL environment variable, using fallback", "fallback", shell)
+	}
+
+	cmd := exec.Command(shell, "-i", "-c", "echo $PATH")
+	output, err := cmd.Output()
+
+	if err != nil {
+		return fmt.Errorf("could not get PATH from shell: %w", err)
+	} else {
+		path := string(output)
+		a.logger.Info("setting PATH from shell", "path", path)
+		if err = os.Setenv("PATH", path); err != nil {
+			return fmt.Errorf("could not set PATH from shell: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // startup is called when the app starts. The context is saved
 // so we can call the runtime methods
-func (a *App) Startup(ctx context.Context) {
-	a.ctx = ctx
-	logger.Info("Application starting up")
+func (a *App) Startup() {
+	a.logger.Info("application starting up")
 
 	// Start the gRPC server
 	if err := a.grpcServer.Start(); err != nil {
-		logger.Fatalf("Failed to start gRPC server: %v", err)
+		a.logger.Error("failed to start gRPC server", "error", err)
+		os.Exit(1)
 	}
-	logger.Info("gRPC server started")
+	a.logger.Info("gRPC server started")
 }
 
-func (a *App) Shutdown(ctx context.Context) {
-	logger.Info("Application shutting down")
-	a.grpcServer.Stop(ctx)
+func (a *App) Shutdown() {
+	a.logger.Info("Application shutting down")
+	a.grpcServer.Stop()
 }

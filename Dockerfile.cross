@@ -1,0 +1,21 @@
+FROM debian:bookworm-slim as go-installer
+ARG GO_VERSION=1.26.1
+RUN apt-get update && apt-get install -y wget && \
+    wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz && \
+    rm go${GO_VERSION}.linux-amd64.tar.gz
+
+FROM dockcross/windows-static-x64 as dockcross-go-windows-amd64
+ENV DEFAULT_DOCKCROSS_IMAGE dockcross-go-windows-amd64
+COPY --from=go-installer /usr/local/go /usr/local/go
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+FROM dockcross/linux-arm64 as dockcross-go-darwin-arm64
+ENV DEFAULT_DOCKCROSS_IMAGE dockcross-go-darwin-arm64
+COPY --from=go-installer /usr/local/go /usr/local/go
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+FROM dockcross/linux-x64 as dockcross-go-linux-amd64
+ENV DEFAULT_DOCKCROSS_IMAGE dockcross-go-linux-amd64
+COPY --from=go-installer /usr/local/go /usr/local/go
+ENV PATH="/usr/local/go/bin:${PATH}"

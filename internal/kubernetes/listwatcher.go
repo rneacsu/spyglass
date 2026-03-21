@@ -3,10 +3,10 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sort"
 	"sync"
 
-	"github.com/rneacsu/spyglass/internal/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/watch"
@@ -21,7 +21,7 @@ type ListWatcher struct {
 	objList     map[string]*unstructured.Unstructured
 }
 
-func NewListWatcher(clientConfig *rest.Config, config WatcherConfig) (*ListWatcher, error) {
+func NewListWatcher(logger *slog.Logger, clientConfig *rest.Config, config WatcherConfig) (*ListWatcher, error) {
 	client, err := dynamic.NewForConfig(clientConfig)
 
 	if err != nil {
@@ -29,7 +29,7 @@ func NewListWatcher(clientConfig *rest.Config, config WatcherConfig) (*ListWatch
 	}
 
 	return &ListWatcher{
-		baseWatcher: NewBaseWatcher(config, WatcherTypeList),
+		baseWatcher: NewBaseWatcher(logger.With("component", "kube_list_watcher"), config, WatcherTypeList),
 		client:      client,
 		objList:     make(map[string]*unstructured.Unstructured),
 	}, nil
@@ -78,7 +78,7 @@ func (lw *ListWatcher) List(ctx context.Context) ([]*unstructured.Unstructured, 
 		lw.objListLock.Unlock()
 
 		lw.watchWG.Go(func() {
-			logger.Infow("background watching started", lw.logContext...)
+			lw.logger.Info("background watching started")
 
 			for event := range watcher.ResultChan() {
 				lw.objListLock.Lock()
@@ -90,13 +90,11 @@ func (lw *ListWatcher) List(ctx context.Context) ([]*unstructured.Unstructured, 
 					obj := event.Object.(*unstructured.Unstructured)
 					delete(lw.objList, string(obj.GetUID()))
 				case watch.Error:
-					var logMsg string
 					if status, ok := event.Object.(*metav1.Status); ok {
-						logMsg = fmt.Sprintf("watch event error: %s, reason: %s", status.Message, status.Reason)
+						lw.logger.Error("watch event error", "error", status.Message, "reason", status.Reason)
 					} else {
-						logMsg = fmt.Sprintf("watch event error: %v", event.Object)
+						lw.logger.Error("watch event error", "error", event.Object)
 					}
-					logger.Errorw(logMsg, lw.logContext...)
 				}
 				lw.objListLock.Unlock()
 			}
@@ -105,7 +103,7 @@ func (lw *ListWatcher) List(ctx context.Context) ([]*unstructured.Unstructured, 
 			defer lw.watchLock.Unlock()
 			lw.watch = nil
 
-			logger.Infow("background watching finished", lw.logContext...)
+			lw.logger.Info("background watching finished")
 		})
 	}
 

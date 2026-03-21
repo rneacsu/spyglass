@@ -1,10 +1,10 @@
 package kubernetes
 
 import (
+	"log/slog"
 	"sync"
 	"time"
 
-	"github.com/rneacsu/spyglass/internal/logger"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 )
@@ -18,7 +18,6 @@ type Watcher interface {
 	GetLastUsed() time.Time
 	UpdateLastUsed()
 	GetType() WatcherType
-	GetID() string
 }
 
 type WatcherType string
@@ -38,25 +37,24 @@ type WatcherConfig struct {
 }
 
 type baseWatcher struct {
-	config     WatcherConfig
-	watch      watch.Interface
-	watchLock  sync.Mutex
-	watchWG    sync.WaitGroup
-	logContext []any
+	config    WatcherConfig
+	watch     watch.Interface
+	watchLock sync.Mutex
+	watchWG   sync.WaitGroup
+	logger    *slog.Logger
 
 	LastUsed time.Time
 }
 
-func NewBaseWatcher(config WatcherConfig, watcherType WatcherType) *baseWatcher {
+func NewBaseWatcher(logger *slog.Logger, config WatcherConfig, watcherType WatcherType) *baseWatcher {
 	config.watcherType = watcherType
 	return &baseWatcher{
 		config:   config,
 		LastUsed: time.Now(),
-		logContext: []any{
-			"context", config.KubeContext,
+		logger: logger.With(
 			"resource", config.GVR,
 			"type", watcherType,
-		},
+		),
 	}
 }
 
@@ -75,7 +73,7 @@ func (bw *baseWatcher) Stop() {
 	}
 	bw.watchLock.Unlock()
 	bw.watchWG.Wait()
-	logger.Infow("Stopped watching", bw.logContext...)
+	bw.logger.Info("stopped watching")
 }
 
 func (bw *baseWatcher) GetType() WatcherType {
