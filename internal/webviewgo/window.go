@@ -160,7 +160,7 @@ func (w *Window) onScriptMessage(msg string) {
 		}
 
 		params := make([]reflect.Value, numParams)
-		for i := 0; i < numParams; i++ {
+		for i := range numParams {
 			paramType := binding.f.Type().In(i)
 			param := reflect.New(paramType)
 			err := json.Unmarshal(scriptMsg.Params[i], param.Interface())

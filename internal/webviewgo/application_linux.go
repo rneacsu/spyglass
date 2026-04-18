@@ -1,8 +1,8 @@
 package webviewgo
 
 /*
-#cgo linux LDFLAGS: -ldl
-#cgo linux pkg-config: gtk4 webkitgtk-6.0
+#cgo LDFLAGS: -ldl
+#cgo pkg-config: gtk4 webkitgtk-6.0
 
 #include <gtk/gtk.h>
 #include <webkit/webkit.h>
@@ -23,7 +23,7 @@ type LinuxApplication struct {
 	mainThreadDone   chan struct{}
 }
 
-func newApplicationImpl(app *Application) *LinuxApplication {
+func newApplicationImpl(app *Application) ApplicationImpl {
 	return &LinuxApplication{
 		app:              app,
 		mainThreadEvents: make(chan func()),

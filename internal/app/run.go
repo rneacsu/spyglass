@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/rneacsu/spyglass/internal/webviewgo"
+	"github.com/rneacsu/spyglass/internal/webview"
 )
 
-func Run(logger *slog.Logger, frontend webviewgo.Frontend) error {
+func Run(logger *slog.Logger, frontend webview.Frontend) error {
 	app := NewApp(logger)
 
 	if err := app.useInteractiveShellPath(); err != nil {
 		logger.Warn("could not set PATH from interactive shell", "error", err)
 	}
 
-	wApp, err := webviewgo.InitApplication(logger, frontend)
+	wApp, err := webview.InitApplication(logger, frontend)
 	if err != nil {
 		return fmt.Errorf("could not initialize application: %w", err)
 	}

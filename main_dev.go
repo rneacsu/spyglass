@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/rneacsu/spyglass/internal/webviewgo"
+	"github.com/rneacsu/spyglass/internal/webview"
 )
 
 func init() {
 	logger = slog.New(slog.NewTextHandler(os.Stderr, nil))
-	frontend = webviewgo.NewExternalUrlFrontend(logger, "http://localhost:5173/")
+	frontend = webview.NewExternalUrlFrontend(logger, "http://localhost:5173/")
 }

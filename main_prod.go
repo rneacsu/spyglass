@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/rneacsu/spyglass/internal/webviewgo"
+	"github.com/rneacsu/spyglass/internal/webview"
 )
 
 //go:embed all:frontend/build
@@ -15,5 +15,5 @@ var assets embed.FS
 
 func init() {
 	logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	frontend = webviewgo.NewEmbeddedFrontend(logger, &assets, "frontend/build")
+	frontend = webview.NewEmbeddedFrontend(logger, &assets, "frontend/build")
 }

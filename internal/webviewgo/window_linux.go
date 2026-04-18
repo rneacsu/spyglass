@@ -1,8 +1,8 @@
 package webviewgo
 
 /*
-#cgo linux LDFLAGS: -ldl
-#cgo linux pkg-config: gtk4 webkitgtk-6.0
+#cgo LDFLAGS: -ldl
+#cgo pkg-config: gtk4 webkitgtk-6.0
 
 #include <stdlib.h>
 #include <gtk/gtk.h>
